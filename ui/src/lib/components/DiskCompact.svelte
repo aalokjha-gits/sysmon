@@ -17,10 +17,21 @@
   {#if $diskMetrics}
     <div class="disks-list">
       {#each $diskMetrics.disks as disk}
-        <div class="disk-row">
-          <span class="disk-mount mono" title={disk.mount_point}>
-            {disk.mount_point}
-          </span>
+        <div class="disk-entry">
+          <div class="disk-top-line">
+            <span class="disk-mount mono" title={disk.mount_point}>
+              {disk.mount_point}
+            </span>
+            <span class="disk-meta">
+              <span class="disk-percent mono" style:color={getUsageColor(disk.used_percent)}>
+                {disk.used_percent.toFixed(1)}%
+              </span>
+              <span class="disk-size mono">
+                {formatBytes(disk.used_bytes)}/{formatBytes(disk.total_bytes)}
+              </span>
+              <span class="disk-fs">{disk.file_system}</span>
+            </span>
+          </div>
           <div class="disk-bar-bg">
             <div
               class="disk-bar-fill"
@@ -28,24 +39,20 @@
               style:background-color={getUsageColor(disk.used_percent)}
             ></div>
           </div>
-          <span class="disk-percent mono" style:color={getUsageColor(disk.used_percent)}>
-            {disk.used_percent.toFixed(1)}%
-          </span>
-          <span class="disk-size mono">
-            {formatBytes(disk.used_bytes)}/{formatBytes(disk.total_bytes)}
-          </span>
-          <span class="disk-fs">{disk.file_system}</span>
         </div>
       {/each}
     </div>
   {:else}
     <div class="disks-list">
-      <div class="disk-row skeleton">
-        <span class="disk-mount mono">/</span>
+      <div class="disk-entry skeleton">
+        <div class="disk-top-line">
+          <span class="disk-mount mono">/</span>
+          <span class="disk-meta">
+            <span class="disk-percent mono">--</span>
+            <span class="disk-size mono">--/--</span>
+          </span>
+        </div>
         <div class="disk-bar-bg"><div class="disk-bar-fill" style:width="0%"></div></div>
-        <span class="disk-percent mono">--</span>
-        <span class="disk-size mono">--/--</span>
-        <span class="disk-fs">--</span>
       </div>
     </div>
   {/if}
@@ -78,40 +85,51 @@
   .disks-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-  }
-
-  .disk-row {
-    display: flex;
-    align-items: center;
     gap: 6px;
-    font-size: var(--font-xs);
-    padding: 3px 0;
-    overflow: hidden;
-    flex-wrap: wrap;
   }
 
-  .disk-row.skeleton {
+  .disk-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .disk-entry.skeleton {
     opacity: 0.5;
   }
 
+  .disk-top-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: var(--font-xs);
+  }
+
   .disk-mount {
-    min-width: 30px;
-    max-width: 80px;
     color: var(--text-primary);
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .disk-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .disk-bar-bg {
-    flex: 1;
+    width: 100%;
     height: 4px;
     background: var(--bg-elevated);
     border-radius: 2px;
     overflow: hidden;
-    min-width: 40px;
   }
 
   .disk-bar-fill {
@@ -121,21 +139,15 @@
   }
 
   .disk-percent {
-    min-width: 36px;
-    text-align: right;
     font-weight: 500;
   }
 
   .disk-size {
     color: var(--text-secondary);
-    white-space: nowrap;
-    text-align: right;
   }
 
   .disk-fs {
     color: var(--text-muted);
-    white-space: nowrap;
-    text-align: right;
   }
 
   .mono {

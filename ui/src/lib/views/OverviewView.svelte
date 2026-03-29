@@ -162,9 +162,10 @@
 
   .bottom-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 3fr;
     gap: 8px;
     flex-shrink: 0;
+    align-items: start;
   }
 
   .card {

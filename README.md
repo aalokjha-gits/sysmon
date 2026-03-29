@@ -28,14 +28,15 @@
 ## Features
 
 - **Single Binary** — Everything embedded, no external dependencies
-- **Sidebar + Workspace UI** — Navigate between Overview, Processes, Network, Containers, Alerts, and System views with keyboard shortcuts (1-6)
+- **Sidebar + Workspace UI** — Navigate between Overview, Processes, Network, Containers, and Alerts views with keyboard shortcuts (1-5)
 - **Lightweight** — Minimal resource footprint, written in Rust
-- **Real-time Metrics** — CPU, memory, disk, network, port, and process monitoring via WebSocket
+- **Real-time Metrics** — CPU, memory, disk, network, port, and process monitoring via WebSocket with rolling timeseries charts
 - **Process Tree** — Hierarchical parent-child process view with expand/collapse, search, filters (Active/Idle/Stale/Zombie), multi-select batch kill, signal picker, per-process CPU sparklines, and detail drawer
 - **Port Monitoring** — Detect all listening TCP/UDP ports with process ownership, service identification, and external exposure warnings
 - **Container Monitoring** — Docker and Podman container stats
 - **Alert System** — Configurable CPU/memory thresholds with consecutive sample tracking
 - **Daemon Mode** — Run as a background service via macOS launchd with `sysmon service` commands
+- **CPU Cores Chart** — Multi-line per-core timeseries with color-coded legend and sort by core # or usage
 - **Responsive Design** — Sidebar collapses to bottom nav on mobile
 - **Configurable** — TOML-based configuration with sensible defaults
 

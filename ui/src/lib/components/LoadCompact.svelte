@@ -10,23 +10,19 @@
 </script>
 
 <div class="load-compact compact-panel">
-  <div class="panel-header">
-    <span class="compact-panel-title">Load Average</span>
-  </div>
-
-  <div class="load-values">
-    {#each $loadAvg as load, index}
-      <div class="load-item">
-        <span class="load-period">{[1, 5, 15][index]}M</span>
-        <span class="load-number mono" style:color={getLoadColor(load, $coreCount)}>
-          {load.toFixed(2)}
+  <div class="load-line">
+    <span class="compact-panel-title">Load</span>
+    <div class="load-values">
+      {#each $loadAvg as load, index}
+        <span class="load-entry">
+          <span class="load-period">{[1, 5, 15][index]}m</span>
+          <span class="load-number mono" style:color={getLoadColor(load, $coreCount)}>
+            {load.toFixed(2)}
+          </span>
         </span>
-      </div>
-    {/each}
-  </div>
-
-  <div class="load-max">
-    {$coreCount} cores = <span class="mono">{$coreCount}.00</span> max normal
+      {/each}
+    </div>
+    <span class="load-max">{$coreCount}c max {$coreCount}.00</span>
   </div>
 </div>
 
@@ -35,7 +31,7 @@
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 8px 10px;
+    padding: 6px 10px;
     overflow: hidden;
   }
 
@@ -45,40 +41,41 @@
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    flex-shrink: 0;
   }
 
-  .panel-header {
+  .load-line {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
+    gap: 10px;
   }
 
   .load-values {
     display: flex;
-    gap: 16px;
-    margin-bottom: 6px;
+    gap: 8px;
   }
 
-  .load-item {
+  .load-entry {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
   }
 
   .load-period {
-    font-size: var(--font-xs);
+    font-size: 10px;
     color: var(--text-muted);
   }
 
   .load-number {
-    font-size: var(--font-base);
+    font-size: var(--font-sm);
     font-weight: 600;
   }
 
   .load-max {
-    font-size: var(--font-xs);
+    font-size: 10px;
     color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
   }
 
   .mono {

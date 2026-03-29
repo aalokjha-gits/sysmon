@@ -72,7 +72,6 @@
         {/if}
       </div>
       <span class="nav-label">{view.label}</span>
-      <span class="shortcut">{view.shortcut}</span>
     </button>
   {/each}
 </nav>
@@ -168,16 +167,6 @@
     font-size: var(--font-xs);
     font-weight: 500;
     white-space: nowrap;
-  }
-
-  .shortcut {
-    font-size: 10px;
-    color: var(--text-muted);
-    background: var(--bg-elevated);
-    padding: 0 4px;
-    border-radius: 3px;
-    font-family: var(--font-mono);
-    margin-left: auto;
   }
 
   /* Mobile: bottom nav */

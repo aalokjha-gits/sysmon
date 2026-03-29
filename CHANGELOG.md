@@ -7,17 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-29
+
 ### Added
 
-- **Sidebar navigation** — new workspace layout with 6 dedicated views (Overview, Processes, Network, Containers, Alerts, System), keyboard shortcuts 1-6, auto-expanding sidebar with labels on hover, mobile bottom nav
+- **Sidebar workspace layout** — 5 dedicated views (Overview, Processes, Network, Containers, Alerts) with keyboard shortcuts 1-5, always-expanded sidebar, mobile bottom nav
 - **Port monitoring** — detect all listening TCP/UDP ports via `lsof`, well-known service identification, external exposure warnings, `GET /api/v1/ports` endpoint, real-time port data in WebSocket metrics broadcast
-- **Overview dashboard** — grid of clickable metric cards for at-a-glance monitoring
-- **Dedicated views** — full-width process tree, combined network + ports view, alert center with severity sorting, system info panel
+- **CPU & Memory timeseries charts** — rolling 5-minute SVG line charts with gradient fill, gridlines, hover crosshair and tooltip
+- **CPU cores multi-line chart** — per-core timeseries with 12-color palette, right-side legend showing "Core N — X%", sort toggle (by core # or usage)
+- **Metrics history stores** — accumulate CPU, memory, and per-core data over time from WebSocket
+- **Overview dashboard** — system info strip, CPU/Memory timeseries, CPU cores chart, Load + Disk panels, navigation chips to Network and Containers views
+- **Dedicated views** — full-width process tree, side-by-side network interfaces + ports tables, container management, alert center with severity sorting
 
 ### Changed
 
 - Dashboard layout replaced from fixed two-column split to sidebar + workspace architecture
 - Each monitoring domain gets its own full-width view instead of cramped panels
+- Load Average panel redesigned to single compact line
+- Disk panel redesigned with full mount paths visible and per-disk progress bars
+- Overview bottom row uses 2:3 grid ratio (Load smaller, Disk larger)
+- Centered metric pills in top bar
 
 ## [0.3.0] - 2026-03-29
 
@@ -83,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Protected process list (prevents killing system-critical processes)
 - Command-line argument sanitization (redacts passwords, tokens, API keys)
 
+[0.4.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.4.0
 [0.3.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.3.0
 [0.2.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.2.0
 [0.1.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.1.0

@@ -19,8 +19,21 @@
 
   let width = $state(0);
   let mouseX = $state<number | null>(null);
+  let sortByValue = $state(false);
 
   let coresArray = $derived(Array.from(coreData.entries()).sort((a, b) => a[0] - b[0]));
+
+  let sortedLegendEntries = $derived.by(() => {
+    const entries = coresArray.map(([core]) => ({
+      core,
+      value: legendValues.get(core) || 0,
+      color: colors[core % colors.length]
+    }));
+    if (sortByValue) {
+      return entries.sort((a, b) => b.value - a.value);
+    }
+    return entries;
+  });
 
   let latestTime = $derived.by(() => {
     let latest = 0;
@@ -188,15 +201,15 @@
     </div>
 
     <div class="legend-panel" style="max-height: {height + 20}px;">
-      {#each coresArray as [core]}
-        {@const color = colors[core % colors.length]}
-        {@const val = legendValues.get(core) || 0}
+      <button class="sort-toggle" onclick={() => sortByValue = !sortByValue} title={sortByValue ? 'Sorted by usage' : 'Sorted by core #'}>
+        {sortByValue ? '▼ usage' : '# core'}
+      </button>
+      {#each sortedLegendEntries as entry}
         <div class="legend-item">
-          <div class="legend-label">
-            <span class="dot" style="background-color: {color}"></span>
-            <span>{core}</span>
-          </div>
-          <span class="legend-value">{val.toFixed(1)}%</span>
+          <span class="dot" style="background-color: {entry.color}"></span>
+          <span class="legend-label">Core {entry.core}</span>
+          <span class="legend-sep">—</span>
+          <span class="legend-value">{entry.value.toFixed(1)}%</span>
         </div>
       {/each}
     </div>
@@ -257,32 +270,58 @@
   }
 
   .legend-panel {
-    width: 90px;
+    width: 190px;
     display: flex;
     flex-direction: column;
-    gap: var(--space-compact, 6px);
+    gap: 3px;
     overflow-y: auto;
     padding-right: 4px;
+    flex-shrink: 0;
+  }
+
+  .sort-toggle {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+    padding: 3px 8px;
+    cursor: pointer;
+    align-self: flex-end;
+    margin-bottom: 4px;
+    transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+    font-weight: 500;
+  }
+
+  .sort-toggle:hover {
+    color: var(--text-primary);
+    border-color: var(--accent);
+    background: var(--bg-surface);
   }
 
   .legend-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 5px;
     font-family: var(--font-mono);
     font-size: var(--font-xs);
+    white-space: nowrap;
   }
 
   .legend-label {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .legend-sep {
+    color: var(--text-muted);
+    flex-shrink: 0;
   }
 
   .dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -291,6 +330,7 @@
     color: var(--text-primary);
     font-weight: 500;
     text-align: right;
+    margin-left: auto;
   }
 
   .grid-line {
