@@ -5,6 +5,11 @@ pub fn collect_temperature_metrics() -> TemperatureMetrics {
     let components = Components::new_with_refreshed_list();
     let sensors: Vec<TemperatureSensor> = components
         .iter()
+        .filter(|c| {
+            c.temperature()
+                .map(|t| t > 0.0 && t < 150.0)
+                .unwrap_or(false)
+        })
         .map(|c| TemperatureSensor {
             label: c.label().to_string(),
             temperature_celsius: c.temperature(),

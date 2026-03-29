@@ -51,7 +51,7 @@
     if (unit === '') {
       return value.toString();
     }
-    return `${value}${unit}`;
+    return `${Number(value.toFixed(1))}${unit}`;
   }
 
   function formatExtra(): string {

@@ -147,8 +147,8 @@ impl MetricsCollector {
         let mut prune_counter: u64 = 0;
         // Prune every ~5 minutes (300s / 2s interval = 150 ticks)
         let prune_every: u64 = 150;
-        // Keep 7 days of raw data
-        let max_age_seconds: i64 = 7 * 24 * 3600;
+        // Keep 30 days of raw data
+        let max_age_seconds: i64 = 30 * 24 * 3600;
 
         tokio::spawn(async move {
             let mut ticker = interval(Duration::from_millis(interval_ms));

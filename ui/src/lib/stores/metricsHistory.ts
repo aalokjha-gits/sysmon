@@ -46,10 +46,9 @@ export function startMetricsHistory(): void {
       appendCorePoints($m.cpu.cores);
     }
 
-    // Temperature: average of all sensor readings
     const temps = $m.temperature?.sensors
       ?.map(s => s.temperature_celsius)
-      .filter((t): t is number => t != null) ?? [];
+      .filter((t): t is number => t != null && t > 0 && t < 150) ?? [];
     if (temps.length > 0) {
       appendPoint(temperatureHistory, temps.reduce((a, b) => a + b, 0) / temps.length);
     }

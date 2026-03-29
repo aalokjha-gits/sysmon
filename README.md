@@ -31,15 +31,15 @@
 - **Sidebar + Workspace UI** — Navigate between Overview, Processes, Network, Containers, and Alerts views with keyboard shortcuts (1-5)
 - **Lightweight** — Minimal resource footprint, written in Rust
 - **Real-time Metrics** — CPU, memory, disk, network, port, temperature, GPU, and process monitoring via WebSocket with rolling timeseries charts
-- **Temperature Monitoring** — Real-time thermal sensor data with color-coded bars and threshold alerts
+- **Temperature Monitoring** — Real-time thermal sensor data grouped by type (CPU/GPU/Storage/Battery) with human-friendly status labels (Cool/Normal/Warm/Hot/Critical)
 - **GPU Monitoring** — GPU name, VRAM usage, utilization, temperature, and power draw (NVIDIA, AMD, Apple Silicon)
-- **Historical Data** — SQLite-backed metrics persistence with 7-day retention and configurable history API
+- **Historical Data** — SQLite-backed metrics persistence with 30-day retention, time range selector (Live/1h/6h/24h/7d/30d) on all charts, and configurable history API
 - **Process Tree** — Hierarchical parent-child process view with expand/collapse, search, filters (Active/Idle/Stale/Zombie), multi-select batch kill, signal picker, per-process CPU sparklines, and detail drawer
 - **Port Monitoring** — Detect all listening TCP/UDP ports with process ownership, service identification, and external exposure warnings
 - **Container Monitoring** — Docker and Podman container stats
 - **Alert System** — Configurable CPU/memory thresholds with consecutive sample tracking
 - **Daemon Mode** — Run as a background service via launchd (macOS) or systemd (Linux) with `sysmon service` commands
-- **CPU Cores Chart** — Multi-line per-core timeseries with color-coded legend and sort by core # or usage
+- **CPU Cores Chart** — Multi-line per-core timeseries with color-coded legend, sort by core # or usage, and Grafana-style click-to-isolate core selection
 - **Responsive Design** — Sidebar collapses to bottom nav on mobile
 - **Configurable** — TOML-based configuration with sensible defaults
 

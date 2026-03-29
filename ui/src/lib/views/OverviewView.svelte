@@ -53,24 +53,24 @@
 
   <div class="charts-row">
     <div class="chart-card">
-      <TimeSeriesChart data={$cpuHistory} label="CPU" unit="%" color="var(--cpu-color)" />
+      <TimeSeriesChart data={$cpuHistory} label="CPU" metric="cpu" unit="%" color="var(--cpu-color)" />
     </div>
     <div class="chart-card">
-      <TimeSeriesChart data={$memoryHistory} label="Memory" unit="%" color="var(--memory-color)" />
-    </div>
-  </div>
-
-  <div class="charts-row">
-    <div class="chart-card">
-      <TimeSeriesChart data={$temperatureHistory} label="Temp" unit="°C" color="#f59e0b" />
-    </div>
-    <div class="chart-card">
-      <TimeSeriesChart data={$gpuHistory} label="GPU" unit="%" color="#8b5cf6" />
+      <TimeSeriesChart data={$memoryHistory} label="Memory" metric="memory" unit="%" color="var(--memory-color)" />
     </div>
   </div>
 
   <div class="chart-card cores-chart">
     <CpuCoresChart coreData={$coreHistory} />
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <TimeSeriesChart data={$temperatureHistory} label="Temp" metric="temperature" unit="°C" color="#f59e0b" minValue={0} maxValue={110} />
+    </div>
+    <div class="chart-card">
+      <TimeSeriesChart data={$gpuHistory} label="GPU" metric="gpu_utilization" unit="%" color="#8b5cf6" />
+    </div>
   </div>
 
   <div class="bottom-row">
@@ -82,7 +82,7 @@
     </div>
   </div>
 
-  <div class="bottom-row">
+  <div class="bottom-row equal">
     <div class="card">
       <TemperatureCompact />
     </div>
@@ -169,6 +169,7 @@
     border-radius: var(--radius-md);
     padding: 10px 12px 6px;
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .cores-chart {
@@ -186,6 +187,10 @@
     gap: 8px;
     flex-shrink: 0;
     align-items: start;
+  }
+
+  .bottom-row.equal {
+    grid-template-columns: 1fr 1fr;
   }
 
   .card {
@@ -256,7 +261,8 @@
       grid-template-columns: 1fr;
     }
 
-    .bottom-row {
+    .bottom-row,
+    .bottom-row.equal {
       grid-template-columns: 1fr;
     }
 

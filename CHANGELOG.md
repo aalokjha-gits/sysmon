@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-30
+
+### Added
+
+- **Time range selector on timeseries charts** — Switch between Live (5m), 1h, 6h, 24h, 7d, and 30d ranges on CPU, Memory, Temperature, and GPU charts, fetching historical data from the SQLite-backed history API
+- **Grafana-style core isolation on CPU Cores chart** — Click any core in the legend to isolate it; unselected cores fade to 8% opacity with a "clear" button to reset; multi-select supported
+- **Human-friendly temperature panel** — Sensors grouped by type (CPU, GPU, Storage, Memory, Power, Battery, etc.) with status badges (Cool/Normal/Warm/Hot/Critical), overall status in header, grid card layout
+
+### Changed
+
+- **DB retention extended to 30 days** — Historical metrics now kept for 30 days (previously 7 days), auto-pruned
+- **Temperature data filtering** — Backend now filters out sensors with impossible readings (≤0°C or ≥150°C) to prevent display artifacts
+- **Overview layout improved** — CPU Cores chart moved directly below CPU/Memory row for prominence; Temperature and GPU compact panels use equal-width grid
+- **Metric pill formatting** — TEMP pill now shows rounded value (e.g., "33.0°C") instead of raw float
+
+### Fixed
+
+- **Temperature timeseries showing -417°C** — Caused by macOS SMC sensors returning negative values; now filtered at backend and frontend levels
+- **Temperature sensor names truncated** — Grid cell minimum width increased from 100px to 130px
+- **CPU Cores chart hidden by overflow** — Added flex-shrink: 0 to chart cards so they don't collapse in the scrollable overview
+
 ## [0.6.0] - 2026-03-29
 
 ### Added

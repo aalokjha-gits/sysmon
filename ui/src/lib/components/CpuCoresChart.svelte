@@ -12,16 +12,47 @@
   }: Props = $props();
 
   const colors = [
-    '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', 
-    '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', 
+    '#3b82f6', '#22c55e', '#f59e0b', '#ef4444',
+    '#8b5cf6', '#06b6d4', '#ec4899', '#f97316',
     '#14b8a6', '#6366f1', '#84cc16', '#e879f9'
   ];
 
   let width = $state(0);
   let mouseX = $state<number | null>(null);
   let sortByValue = $state(false);
+  let selectedCores = $state<Set<number>>(new Set());
 
   let coresArray = $derived(Array.from(coreData.entries()).sort((a, b) => a[0] - b[0]));
+
+  let hasSelection = $derived(selectedCores.size > 0);
+
+  function toggleCore(core: number) {
+    selectedCores = new Set(selectedCores);
+    if (selectedCores.has(core)) {
+      selectedCores.delete(core);
+    } else {
+      selectedCores.add(core);
+    }
+    selectedCores = selectedCores;
+  }
+
+  function clearSelection() {
+    selectedCores = new Set();
+  }
+
+  function isCoreVisible(core: number): boolean {
+    return !hasSelection || selectedCores.has(core);
+  }
+
+  function getCoreOpacity(core: number): number {
+    if (!hasSelection) return 1;
+    return selectedCores.has(core) ? 1 : 0.08;
+  }
+
+  function getCoreStrokeWidth(core: number): number {
+    if (!hasSelection) return 1.5;
+    return selectedCores.has(core) ? 2.5 : 1;
+  }
 
   let sortedLegendEntries = $derived.by(() => {
     const entries = coresArray.map(([core]) => ({
@@ -106,8 +137,10 @@
 
   function getPath(data: Array<{timestamp: number, value: number}>) {
     if (data.length === 0 || width === 0) return '';
+    const range = latestTime - startTime;
+    if (range === 0) return '';
     const points = data.map(d => {
-      const x = ((d.timestamp - startTime) / (latestTime - startTime)) * width;
+      const x = ((d.timestamp - startTime) / range) * width;
       const y = height - (d.value / 100) * height;
       return `${x},${y}`;
     });
@@ -119,6 +152,11 @@
   <div class="header">
     <div class="label-container">
       <span class="label-text">CPU CORES ({coresArray.length})</span>
+      {#if hasSelection}
+        <button class="clear-btn" onclick={clearSelection} title="Show all cores">
+          ✕ clear
+        </button>
+      {/if}
     </div>
     <div class="value-container">
       <span class="value-text">{overallCurrentValue.toFixed(1)}%</span>
@@ -141,21 +179,12 @@
             {@const y = height - pct * height}
             {@const val = Math.round(pct * 100)}
             <line
-              x1="0"
-              y1={y}
-              x2={width}
-              y2={y}
-              stroke="var(--border-color)"
-              stroke-dasharray="4, 4"
-              stroke-width="1"
+              x1="0" y1={y} x2={width} y2={y}
+              stroke="var(--border-color)" stroke-dasharray="4, 4" stroke-width="1"
               class="grid-line"
             />
             {#if pct > 0}
-              <text
-                x="0"
-                y={y > 10 ? y - 4 : y + 12}
-                class="axis-text"
-              >
+              <text x="0" y={y > 10 ? y - 4 : y + 12} class="axis-text">
                 {val}%
               </text>
             {/if}
@@ -179,21 +208,18 @@
               d={getPath(data)}
               fill="none"
               stroke={color}
-              stroke-width="1.5"
+              stroke-width={getCoreStrokeWidth(core)}
               stroke-linejoin="round"
               stroke-linecap="round"
+              opacity={getCoreOpacity(core)}
+              style="transition: opacity 0.2s ease, stroke-width 0.2s ease;"
             />
           {/each}
 
           {#if hoverX !== null}
             <line
-              x1={hoverX}
-              y1="0"
-              x2={hoverX}
-              y2={height}
-              stroke="var(--text-secondary)"
-              stroke-width="1"
-              class="crosshair"
+              x1={hoverX} y1="0" x2={hoverX} y2={height}
+              stroke="var(--text-secondary)" stroke-width="1" class="crosshair"
             />
           {/if}
         {/if}
@@ -205,12 +231,18 @@
         {sortByValue ? '▼ usage' : '# core'}
       </button>
       {#each sortedLegendEntries as entry}
-        <div class="legend-item">
+        <button
+          class="legend-item"
+          class:dimmed={hasSelection && !selectedCores.has(entry.core)}
+          class:selected={selectedCores.has(entry.core)}
+          onclick={() => toggleCore(entry.core)}
+          title="Click to {selectedCores.has(entry.core) ? 'deselect' : 'isolate'} Core {entry.core}"
+        >
           <span class="dot" style="background-color: {entry.color}"></span>
           <span class="legend-label">Core {entry.core}</span>
           <span class="legend-sep">—</span>
           <span class="legend-value">{entry.value.toFixed(1)}%</span>
-        </div>
+        </button>
       {/each}
     </div>
   </div>
@@ -235,6 +267,12 @@
     margin-bottom: var(--space-2);
   }
 
+  .label-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .label-text {
     font-family: var(--font-mono);
     font-size: var(--font-sm);
@@ -242,6 +280,23 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  .clear-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 1px 6px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .clear-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--accent);
   }
 
   .value-text {
@@ -273,7 +328,7 @@
     width: 190px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     overflow-y: auto;
     padding-right: 4px;
     flex-shrink: 0;
@@ -307,6 +362,30 @@
     font-family: var(--font-mono);
     font-size: var(--font-xs);
     white-space: nowrap;
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+  }
+
+  .legend-item:hover {
+    background: var(--bg-elevated);
+  }
+
+  .legend-item.selected {
+    background: var(--bg-elevated);
+  }
+
+  .legend-item.dimmed {
+    opacity: 0.3;
+  }
+
+  .legend-item.dimmed:hover {
+    opacity: 0.7;
   }
 
   .legend-label {
