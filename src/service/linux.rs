@@ -239,7 +239,7 @@ pub fn status() -> Result<()> {
         if trimmed.starts_with("Main PID:") {
             pid = trimmed
                 .strip_prefix("Main PID:")
-                .and_then(|s| s.trim().split_whitespace().next());
+                .and_then(|s| s.split_whitespace().next());
         }
     }
 

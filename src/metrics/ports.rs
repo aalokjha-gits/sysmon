@@ -1,6 +1,7 @@
 use crate::models::PortInfo;
 use std::process::Command;
 
+#[allow(dead_code)]
 fn parse_address_port(name: &str) -> Option<(String, u16)> {
     if name.starts_with('[') {
         let bracket_end = name.find(']')?;
