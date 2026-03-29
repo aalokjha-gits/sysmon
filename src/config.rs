@@ -190,8 +190,17 @@ fn default_protected_processes() -> Vec<String> {
         // Linux system critical
         "init".to_string(),
         "systemd".to_string(),
+        "systemd-journald".to_string(),
+        "systemd-logind".to_string(),
+        "systemd-udevd".to_string(),
+        "systemd-resolved".to_string(),
+        "systemd-networkd".to_string(),
         "journald".to_string(),
         "udevd".to_string(),
+        "kthreadd".to_string(),
+        "dbus-daemon".to_string(),
+        "NetworkManager".to_string(),
+        "polkitd".to_string(),
         // This process
         "sysmon".to_string(),
     ]

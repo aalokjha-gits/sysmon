@@ -35,20 +35,20 @@
 - **Port Monitoring** — Detect all listening TCP/UDP ports with process ownership, service identification, and external exposure warnings
 - **Container Monitoring** — Docker and Podman container stats
 - **Alert System** — Configurable CPU/memory thresholds with consecutive sample tracking
-- **Daemon Mode** — Run as a background service via macOS launchd with `sysmon service` commands
+- **Daemon Mode** — Run as a background service via launchd (macOS) or systemd (Linux) with `sysmon service` commands
 - **CPU Cores Chart** — Multi-line per-core timeseries with color-coded legend and sort by core # or usage
 - **Responsive Design** — Sidebar collapses to bottom nav on mobile
 - **Configurable** — TOML-based configuration with sensible defaults
 
 ## Quick Install
 
-### Option 1: One-liner (macOS)
+### Option 1: One-liner (macOS / Linux)
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/aalokjha-gits/sysmon/main/install.sh | sh
 ```
 
-### Option 2: Homebrew
+### Option 2: Homebrew (macOS)
 
 ```bash
 brew tap aalokjha-gits/sysmon
@@ -94,15 +94,17 @@ sysmon --json
 ### Daemon mode
 
 ```bash
-sysmon service install    # Install launchd service
+sysmon service install    # Install service (launchd on macOS, systemd on Linux)
 sysmon service start      # Start the daemon
 sysmon service stop       # Stop the daemon
 sysmon service status     # Check daemon status
 sysmon service logs       # View daemon logs
-sysmon service uninstall  # Remove launchd service
+sysmon service uninstall  # Remove service
 ```
 
 The daemon runs on port 8989 with `--no-browser`. Access at `http://127.0.0.1:8989`.
+
+On macOS, uses launchd (`~/Library/LaunchAgents/`). On Linux, uses systemd user units (`~/.config/systemd/user/`).
 
 ### Homebrew services
 
@@ -249,9 +251,12 @@ cargo run
 ### Build
 
 ```bash
-make build      # Development build
-make release    # Optimized release build
-make universal  # Universal macOS binary (arm64 + x86_64)
+make build          # Development build
+make release        # Optimized release build
+make universal      # Universal macOS binary (arm64 + x86_64)
+make linux          # Linux native build (run on Linux)
+make linux-x86_64   # Cross-compile for Linux x86_64
+make linux-aarch64  # Cross-compile for Linux aarch64
 ```
 
 ### Test & Lint
@@ -270,6 +275,9 @@ make lint       # Run clippy + svelte-check
 | `make ui` | Build Svelte UI only |
 | `make release` | Optimized release binary |
 | `make universal` | Universal macOS binary (arm64 + x86_64) |
+| `make linux` | Linux native build (run on Linux host) |
+| `make linux-x86_64` | Cross-compile for Linux x86_64 |
+| `make linux-aarch64` | Cross-compile for Linux aarch64 |
 | `make install` | Install to `/usr/local/bin` |
 | `make uninstall` | Remove from `/usr/local/bin` |
 | `make lint` | Run clippy + svelte-check |
@@ -278,14 +286,11 @@ make lint       # Run clippy + svelte-check
 
 ## Roadmap
 
-- [ ] Linux support
-- [ ] Windows support
+- [x] Linux support
 - [ ] GPU monitoring
 - [ ] Temperature monitoring
 - [ ] Historical data persistence
 - [ ] Alerts and notifications (desktop/email)
-- [ ] Light theme
-- [ ] Docker container image
 - [ ] Plugin system
 
 ## License

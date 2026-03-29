@@ -1,4 +1,4 @@
-.PHONY: all build dev release install clean ui ui-dev lint test help
+.PHONY: all build dev release install clean ui ui-dev lint test help linux linux-x86_64 linux-aarch64
 
 # Variables
 BINARY_NAME := sysmon
@@ -54,6 +54,24 @@ universal: ui
 		-output $(BUILD_DIR)/$(BINARY_NAME)-universal
 	@echo "✅ Universal binary: $(BUILD_DIR)/$(BINARY_NAME)-universal"
 
+# Build Linux binary (native, run on Linux host)
+linux: ui
+	@echo "🐧 Building Linux binary..."
+	cargo build --release
+	@echo "✅ Binary: $(BUILD_DIR)/$(BINARY_NAME)"
+
+# Cross-compile for Linux x86_64 (from macOS)
+linux-x86_64: ui
+	@echo "🐧 Cross-compiling for Linux x86_64..."
+	cargo build --release --target x86_64-unknown-linux-gnu
+	@echo "✅ Binary: target/x86_64-unknown-linux-gnu/release/$(BINARY_NAME)"
+
+# Cross-compile for Linux aarch64 (from macOS)
+linux-aarch64: ui
+	@echo "🐧 Cross-compiling for Linux aarch64..."
+	cargo build --release --target aarch64-unknown-linux-gnu
+	@echo "✅ Binary: target/aarch64-unknown-linux-gnu/release/$(BINARY_NAME)"
+
 # Install to /usr/local/bin
 install: release
 	@echo "📦 Installing sysmon to $(INSTALL_DIR)..."
@@ -103,6 +121,9 @@ help:
 	@echo "  ui         Build Svelte UI only"
 	@echo "  release    Build optimized release binary"
 	@echo "  universal  Build universal macOS binary (arm64 + x86_64)"
+	@echo "  linux      Build Linux binary (native, on Linux)"
+	@echo "  linux-x86_64   Cross-compile for Linux x86_64"
+	@echo "  linux-aarch64  Cross-compile for Linux aarch64"
 	@echo "  install    Install to /usr/local/bin"
 	@echo "  uninstall  Remove from /usr/local/bin"
 	@echo "  lint       Run clippy and svelte-check"

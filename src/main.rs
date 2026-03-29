@@ -46,7 +46,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Manage sysmon as a background service (macOS launchd)
+    /// Manage sysmon as a background service (launchd on macOS, systemd on Linux)
     Service {
         #[command(subcommand)]
         action: ServiceAction,

@@ -87,15 +87,34 @@ ARCH=$(uname -m)
 
 info "Detected: $OS ($ARCH)"
 
-# OS check - macOS only for now
 case "$OS" in
     Darwin)
+        case "$ARCH" in
+            arm64|aarch64)
+                TARGET_ARCH="aarch64-apple-darwin"
+                ;;
+            x86_64|amd64)
+                TARGET_ARCH="x86_64-apple-darwin"
+                ;;
+            *)
+                error "Unsupported architecture: $ARCH"
+                exit 1
+                ;;
+        esac
         ;;
     Linux)
-        error "Linux is not yet supported. Please build from source:"
-        error "  git clone https://github.com/$REPO"
-        error "  cd sysmon && cargo build --release"
-        exit 1
+        case "$ARCH" in
+            aarch64|arm64)
+                TARGET_ARCH="aarch64-unknown-linux-gnu"
+                ;;
+            x86_64|amd64)
+                TARGET_ARCH="x86_64-unknown-linux-gnu"
+                ;;
+            *)
+                error "Unsupported architecture: $ARCH"
+                exit 1
+                ;;
+        esac
         ;;
     MINGW*|MSYS*|CYGWIN*)
         error "Windows is not yet supported. Please use WSL2 or build from source."
@@ -103,20 +122,6 @@ case "$OS" in
         ;;
     *)
         error "Unsupported operating system: $OS"
-        exit 1
-        ;;
-esac
-
-# Architecture detection
-case "$ARCH" in
-    arm64|aarch64)
-        TARGET_ARCH="aarch64-apple-darwin"
-        ;;
-    x86_64|amd64)
-        TARGET_ARCH="x86_64-apple-darwin"
-        ;;
-    *)
-        error "Unsupported architecture: $ARCH"
         exit 1
         ;;
 esac
@@ -162,29 +167,42 @@ fi
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-# Download binary
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/sysmon-${VERSION_NO_V}-${TARGET_ARCH}.tar.gz"
 ALT_URL="https://github.com/$REPO/releases/download/$VERSION/sysmon-${TARGET_ARCH}"
 UNIVERSAL_URL="https://github.com/$REPO/releases/download/$VERSION/sysmon-universal"
 
 info "Downloading sysmon..."
 
-# Try universal binary first (preferred), then arch-specific
-if curl -sL --fail "$UNIVERSAL_URL" -o "$TMP_DIR/sysmon" 2>/dev/null; then
-    success "Downloaded universal binary"
-elif curl -sL --fail "$DOWNLOAD_URL" -o "$TMP_DIR/sysmon.tar.gz" 2>/dev/null; then
-    info "Extracting archive..."
-    tar -xzf "$TMP_DIR/sysmon.tar.gz" -C "$TMP_DIR"
-    mv "$TMP_DIR/sysmon" "$TMP_DIR/sysmon" 2>/dev/null || true
-    success "Downloaded and extracted"
-elif curl -sL --fail "$ALT_URL" -o "$TMP_DIR/sysmon" 2>/dev/null; then
-    success "Downloaded binary"
-else
+DOWNLOADED=false
+
+if [ "$OS" = "Darwin" ]; then
+    if curl -sL --fail "$UNIVERSAL_URL" -o "$TMP_DIR/sysmon" 2>/dev/null; then
+        success "Downloaded universal binary"
+        DOWNLOADED=true
+    fi
+fi
+
+if [ "$DOWNLOADED" = "false" ]; then
+    if curl -sL --fail "$ALT_URL" -o "$TMP_DIR/sysmon" 2>/dev/null; then
+        success "Downloaded binary"
+        DOWNLOADED=true
+    elif curl -sL --fail "$DOWNLOAD_URL" -o "$TMP_DIR/sysmon.tar.gz" 2>/dev/null; then
+        info "Extracting archive..."
+        tar -xzf "$TMP_DIR/sysmon.tar.gz" -C "$TMP_DIR"
+        mv "$TMP_DIR/sysmon" "$TMP_DIR/sysmon" 2>/dev/null || true
+        success "Downloaded and extracted"
+        DOWNLOADED=true
+    fi
+fi
+
+if [ "$DOWNLOADED" = "false" ]; then
     error "Failed to download sysmon"
     error "URLs tried:"
-    error "  - $UNIVERSAL_URL"
-    error "  - $DOWNLOAD_URL"
     error "  - $ALT_URL"
+    error "  - $DOWNLOAD_URL"
+    if [ "$OS" = "Darwin" ]; then
+        error "  - $UNIVERSAL_URL"
+    fi
     error ""
     error "You may need to build from source:"
     error "  git clone https://github.com/$REPO"

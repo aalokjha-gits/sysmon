@@ -14,8 +14,11 @@ env:
 
 jobs:
   rust-checks:
-    name: Rust Checks
-    runs-on: macos-latest
+    name: Rust Checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
 
     steps:
       - name: Checkout repository

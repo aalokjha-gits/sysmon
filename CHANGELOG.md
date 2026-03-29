@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-29
+
+### Added
+
+- **Linux support** — full cross-platform support for Linux (x86_64 and aarch64)
+- **Port monitoring on Linux** — uses `ss -tlnp` (macOS continues using `lsof`)
+- **systemd service management** — `sysmon service install/start/stop/restart/status/logs` using systemd user units on Linux
+- **Linux CI** — Rust checks now run on both macOS and Ubuntu
+- **Linux release binaries** — x86_64 and aarch64 Linux binaries published in GitHub releases
+- **Linux install script** — `install.sh` auto-detects Linux and downloads the correct binary
+- **Linux protected processes** — kthreadd, dbus-daemon, NetworkManager, polkitd, systemd-* services added to default protected list
+- **Makefile Linux targets** — `make linux`, `make linux-x86_64`, `make linux-aarch64`
+
+### Changed
+
+- Service module refactored from single file to platform module (`service/macos.rs`, `service/linux.rs`)
+- Service help text now shows platform-aware description (launchd on macOS, systemd on Linux)
+
 ## [0.4.0] - 2026-03-29
 
 ### Added
@@ -92,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Protected process list (prevents killing system-critical processes)
 - Command-line argument sanitization (redacts passwords, tokens, API keys)
 
+[0.5.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.5.0
 [0.4.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.4.0
 [0.3.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.3.0
 [0.2.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.2.0

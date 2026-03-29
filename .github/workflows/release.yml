@@ -14,21 +14,38 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.target }})
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         target:
           - aarch64-apple-darwin
           - x86_64-apple-darwin
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
         include:
           - target: aarch64-apple-darwin
             arch: arm64
+            os: macos-latest
           - target: x86_64-apple-darwin
             arch: x86_64
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            arch: x86_64
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            arch: aarch64
+            os: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install cross-compilation tools
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -164,7 +181,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: build-universal
+    needs: [build, build-universal]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -186,16 +203,23 @@ jobs:
         run: |
           mkdir -p release
 
-          # Copy all artifacts
+          # Copy macOS artifacts
           cp artifacts/dist/*.tar.gz release/ 2>/dev/null || true
-          cp artifacts/dist/checksums.txt release/
           cp artifacts/sysmon-aarch64-apple-darwin/sysmon release/sysmon-aarch64-apple-darwin
           cp artifacts/sysmon-x86_64-apple-darwin/sysmon release/sysmon-x86_64-apple-darwin
           cp artifacts/sysmon-universal/sysmon-universal release/sysmon-universal
 
-          # Generate new checksums
+          # Copy Linux artifacts
+          cp artifacts/sysmon-x86_64-unknown-linux-gnu/sysmon release/sysmon-x86_64-unknown-linux-gnu
+          cp artifacts/sysmon-aarch64-unknown-linux-gnu/sysmon release/sysmon-aarch64-unknown-linux-gnu
+
+          # Copy Linux tarballs
+          cp artifacts/sysmon-x86_64-unknown-linux-gnu-tarball/*.tar.gz release/ 2>/dev/null || true
+          cp artifacts/sysmon-aarch64-unknown-linux-gnu-tarball/*.tar.gz release/ 2>/dev/null || true
+
+          # Generate checksums
           cd release
-          shasum -a 256 * > checksums.txt
+          sha256sum * > checksums.txt
           cat checksums.txt
 
       - name: Generate changelog
@@ -220,9 +244,16 @@ jobs:
           echo "" >> CHANGELOG.md
           echo "## Assets" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
+          echo "### macOS" >> CHANGELOG.md
           echo "- \`sysmon-universal\` - Universal macOS binary (ARM64 + x86_64)" >> CHANGELOG.md
           echo "- \`sysmon-aarch64-apple-darwin\` - macOS ARM64 binary" >> CHANGELOG.md
           echo "- \`sysmon-x86_64-apple-darwin\` - macOS x86_64 binary" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Linux" >> CHANGELOG.md
+          echo "- \`sysmon-x86_64-unknown-linux-gnu\` - Linux x86_64 binary" >> CHANGELOG.md
+          echo "- \`sysmon-aarch64-unknown-linux-gnu\` - Linux ARM64 binary" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Other" >> CHANGELOG.md
           echo "- \`checksums.txt\` - SHA256 checksums for all files" >> CHANGELOG.md
 
           cat CHANGELOG.md
@@ -238,6 +269,8 @@ jobs:
             release/sysmon-aarch64-apple-darwin
             release/sysmon-x86_64-apple-darwin
             release/sysmon-universal
+            release/sysmon-x86_64-unknown-linux-gnu
+            release/sysmon-aarch64-unknown-linux-gnu
           draft: false
           prerelease: ${{ contains(steps.changelog.outputs.version, 'alpha') || contains(steps.changelog.outputs.version, 'beta') || contains(steps.changelog.outputs.version, 'rc') }}
         env:
@@ -277,6 +310,7 @@ jobs:
             version "VERSION_PLACEHOLDER"
             license "MIT"
 
+            # Linux users: use install.sh or download from releases
             if OS.mac? && Hardware::CPU.arm?
               url "https://github.com/aalokjha-gits/sysmon/releases/download/v#{version}/sysmon-universal"
               sha256 "UNIVERSAL_SHA_PLACEHOLDER"
