@@ -250,36 +250,77 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Calculate checksums
+      - name: Download release checksums
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-          # Download universal binary
-          curl -sL -o sysmon-universal "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/sysmon-universal"
-          UNIVERSAL_SHA=$(sha256sum sysmon-universal | cut -d' ' -f1)
-          echo "UNIVERSAL_SHA=$UNIVERSAL_SHA" >> $GITHUB_ENV
+          curl -sL -o sysmon-universal \
+            "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/sysmon-universal"
+          curl -sL -o sysmon-x86_64 \
+            "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/sysmon-x86_64-apple-darwin"
 
-      - name: Update formula
+          echo "UNIVERSAL_SHA=$(sha256sum sysmon-universal | cut -d' ' -f1)" >> $GITHUB_ENV
+          echo "X86_SHA=$(sha256sum sysmon-x86_64 | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Update homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          sed -i "s/version \".*\"/version \"$VERSION\"/" homebrew/sysmon.rb
-          sed -i "s/sha256 \".*\"/sha256 \"$UNIVERSAL_SHA\"/" homebrew/sysmon.rb
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/aalokjha-gits/homebrew-sysmon.git" tap
+          cd tap
 
-          cat homebrew/sysmon.rb
+          cat > sysmon.rb << 'FORMULA'
+          class Sysmon < Formula
+            desc "Lightweight system monitoring dashboard with web UI"
+            homepage "https://github.com/aalokjha-gits/sysmon"
+            version "VERSION_PLACEHOLDER"
+            license "MIT"
 
-      - name: Create PR to homebrew-tap
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          commit-message: "sysmon ${{ env.VERSION }}"
-          title: "sysmon ${{ env.VERSION }}"
-          body: |
-            Automated update for sysmon ${{ env.VERSION }}
+            if OS.mac? && Hardware::CPU.arm?
+              url "https://github.com/aalokjha-gits/sysmon/releases/download/v#{version}/sysmon-universal"
+              sha256 "UNIVERSAL_SHA_PLACEHOLDER"
+            elsif OS.mac? && Hardware::CPU.intel?
+              url "https://github.com/aalokjha-gits/sysmon/releases/download/v#{version}/sysmon-x86_64-apple-darwin"
+              sha256 "X86_SHA_PLACEHOLDER"
+            end
 
-            - Version: ${{ env.VERSION }}
-            - SHA256: ${{ env.UNIVERSAL_SHA }}
-          branch: update-sysmon-${{ env.VERSION }}
-          delete-branch: true
+            def install
+              if build.head?
+                system "cargo", "build", "--release"
+                bin.install "target/release/sysmon"
+              else
+                bin.install Dir.glob("sysmon*").first => "sysmon"
+              end
+            end
+
+            def caveats
+              <<~EOS
+                To start sysmon:
+                  sysmon
+
+                To start on a custom port:
+                  sysmon --port 8080
+
+                To start without opening browser:
+                  sysmon --no-browser
+
+                Configuration: ~/.config/sysmon/config.toml
+              EOS
+            end
+
+            test do
+              assert_match "sysmon", shell_output("#{bin}/sysmon --version")
+            end
+          end
+          FORMULA
+
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/" sysmon.rb
+          sed -i "s/UNIVERSAL_SHA_PLACEHOLDER/$UNIVERSAL_SHA/" sysmon.rb
+          sed -i "s/X86_SHA_PLACEHOLDER/$X86_SHA/" sysmon.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sysmon.rb
+          git commit -m "Update sysmon to v${VERSION}"
+          git push origin main
