@@ -39,6 +39,18 @@ export interface DiskInfo {
   is_removable: boolean;
 }
 
+export interface SystemInfo {
+  hostname: string;
+  os_name: string;
+  os_version: string;
+  kernel_version: string;
+  uptime_seconds: number;
+  cpu_count: number;
+  total_memory_bytes: number;
+  port?: number;
+  container_count?: number;
+}
+
 export interface CpuMetrics {
   overall_percent: number;
   cores: CoreMetrics[];

@@ -13,7 +13,7 @@
   }
 
   // Sort interfaces by total traffic (received + transmitted)
-  function getTopInterfaces(interfaces: typeof $networkMetrics.interfaces, limit: number = 5) {
+  function getTopInterfaces(interfaces: NonNullable<typeof $networkMetrics>['interfaces'], limit: number = 5) {
     return [...interfaces]
       .sort((a, b) => (b.received_bytes + b.transmitted_bytes) - (a.received_bytes + a.transmitted_bytes))
       .slice(0, limit);
