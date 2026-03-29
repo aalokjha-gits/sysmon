@@ -1,0 +1,21 @@
+# Rust
+/target/
+
+# Node
+ui/node_modules/
+ui/.svelte-kit/
+ui/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+*.local
+
+# Config
+sysmon.toml

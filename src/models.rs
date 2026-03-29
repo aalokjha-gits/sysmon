@@ -1,0 +1,685 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+
+/// System-wide metrics snapshot
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SystemMetrics {
+    pub cpu: CpuMetrics,
+    pub memory: MemoryMetrics,
+    pub load_avg: [f64; 3],
+    pub top_processes: Vec<ProcessInfo>,
+    pub alerts: Vec<Alert>,
+    pub system: SystemInfo,
+    pub network: NetworkMetrics,
+    pub disk: DiskMetrics,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Network metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NetworkMetrics {
+    pub interfaces: Vec<NetworkInterface>,
+    pub total_received_bytes: u64,
+    pub total_transmitted_bytes: u64,
+}
+
+/// Per-interface network metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NetworkInterface {
+    pub name: String,
+    pub received_bytes: u64,
+    pub transmitted_bytes: u64,
+    pub received_packets: u64,
+    pub transmitted_packets: u64,
+}
+
+/// Disk metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DiskMetrics {
+    pub disks: Vec<DiskInfo>,
+}
+
+/// Per-disk information
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DiskInfo {
+    pub name: String,
+    pub mount_point: String,
+    pub file_system: String,
+    pub total_bytes: u64,
+    pub available_bytes: u64,
+    pub used_bytes: u64,
+    pub used_percent: f64,
+    pub is_removable: bool,
+}
+
+/// CPU metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CpuMetrics {
+    pub overall_percent: f32,
+    pub cores: Vec<CoreMetrics>,
+}
+
+/// Per-core CPU metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CoreMetrics {
+    pub id: usize,
+    pub usage_percent: f32,
+    pub frequency_mhz: u64,
+}
+
+/// Memory metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MemoryMetrics {
+    pub total_bytes: u64,
+    pub used_bytes: u64,
+    pub free_bytes: u64,
+    pub available_bytes: u64,
+    pub swap_total_bytes: u64,
+    pub swap_used_bytes: u64,
+    pub used_percent: f64,
+}
+
+/// Process information
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ProcessInfo {
+    pub pid: u32,
+    pub ppid: Option<u32>,
+    pub name: String,
+    pub cpu_percent: f32,
+    pub memory_bytes: u64,
+    pub memory_percent: f64,
+    pub status: String,
+    pub started_at: u64,
+    pub runtime_seconds: u64,
+    pub user: String,
+    pub is_stale: bool,
+    pub is_zombie: bool,
+    pub command: String,
+}
+
+/// Stale process detection result
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StaleProcess {
+    pub pid: u32,
+    pub name: String,
+    pub cpu_percent: f32,
+    pub memory_bytes: u64,
+    pub runtime_hours: f64,
+    pub duplicate_count: usize,
+    pub stale_reason: String,
+}
+
+/// Alert definition
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Alert {
+    pub id: String,
+    pub alert_type: String,
+    pub severity: String,
+    pub message: String,
+    pub value: f64,
+    pub threshold: f64,
+    pub since: DateTime<Utc>,
+}
+
+/// System information
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SystemInfo {
+    pub hostname: String,
+    pub os_name: String,
+    pub os_version: String,
+    pub kernel_version: String,
+    pub uptime_seconds: u64,
+    pub cpu_count: usize,
+    pub total_memory_bytes: u64,
+}
+
+/// WebSocket message wrapper
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct WebSocketMessage {
+    #[serde(rename = "type")]
+    pub msg_type: String,
+    pub timestamp: DateTime<Utc>,
+    pub sequence: u64,
+    pub data: Option<SystemMetrics>,
+}
+
+impl WebSocketMessage {
+    pub fn metrics_update(sequence: u64, data: SystemMetrics) -> Self {
+        Self {
+            msg_type: "metrics_update".to_string(),
+            timestamp: Utc::now(),
+            sequence,
+            data: Some(data),
+        }
+    }
+
+    pub fn ping(sequence: u64) -> Self {
+        Self {
+            msg_type: "ping".to_string(),
+            timestamp: Utc::now(),
+            sequence,
+            data: None,
+        }
+    }
+}
+
+// Request/Response types for actions
+
+/// Kill process request
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KillRequest {
+    pub pid: u32,
+    pub signal: Option<String>,
+}
+
+/// Kill stale processes request
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KillStaleRequest {
+    pub max_age_hours: Option<u64>,
+    pub dry_run: Option<bool>,
+}
+
+/// Cleanup request
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CleanupRequest {
+    pub include_stale: Option<bool>,
+    pub stale_max_age_hours: Option<u64>,
+    pub dry_run: Option<bool>,
+}
+
+/// Kill response
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KillResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+/// Killed process info
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KilledProcess {
+    pub pid: u32,
+    pub name: String,
+    pub process_type: String,
+}
+
+/// Cleanup response
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CleanupResponse {
+    pub killed_zombies: u32,
+    pub killed_stale: u32,
+    pub total_killed: u32,
+    pub freed_bytes: u64,
+    pub processes: Vec<KilledProcess>,
+}
+
+/// Health response
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct HealthResponse {
+    pub status: String,
+    pub version: String,
+    pub uptime_seconds: u64,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Container information (optional)
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ContainerInfo {
+    pub id: String,
+    pub names: Vec<String>,
+    pub image: String,
+    pub status: String,
+    pub state: String,
+    pub ports: Vec<ContainerPort>,
+    pub cpu_percent: f64,
+    pub memory_bytes: u64,
+    pub memory_percent: f64,
+}
+
+/// Container port mapping
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ContainerPort {
+    pub private_port: u16,
+    pub public_port: Option<u16>,
+    pub port_type: String,
+}
+
+/// Process list query parameters
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ProcessListParams {
+    pub sort_by: Option<String>,
+    pub limit: Option<usize>,
+    pub filter: Option<String>,
+}
+
+/// Stale processes response
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StaleResponse {
+    pub processes: Vec<StaleProcess>,
+    pub total_memory_waste_bytes: u64,
+    pub stale_count: usize,
+    pub zombie_count: usize,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn sample_core_metrics() -> CoreMetrics {
+        CoreMetrics {
+            id: 0,
+            usage_percent: 45.5,
+            frequency_mhz: 3200,
+        }
+    }
+
+    fn sample_cpu_metrics() -> CpuMetrics {
+        CpuMetrics {
+            overall_percent: 55.0,
+            cores: vec![sample_core_metrics()],
+        }
+    }
+
+    fn sample_memory_metrics() -> MemoryMetrics {
+        MemoryMetrics {
+            total_bytes: 16_000_000_000,
+            used_bytes: 8_000_000_000,
+            free_bytes: 4_000_000_000,
+            available_bytes: 8_000_000_000,
+            swap_total_bytes: 2_000_000_000,
+            swap_used_bytes: 500_000_000,
+            used_percent: 50.0,
+        }
+    }
+
+    fn sample_process_info() -> ProcessInfo {
+        ProcessInfo {
+            pid: 1234,
+            ppid: Some(1),
+            name: "test_proc".to_string(),
+            cpu_percent: 12.5,
+            memory_bytes: 100_000_000,
+            memory_percent: 0.625,
+            status: "running".to_string(),
+            started_at: 1700000000,
+            runtime_seconds: 3600,
+            user: "testuser".to_string(),
+            is_stale: false,
+            is_zombie: false,
+            command: "/usr/bin/test_proc --flag".to_string(),
+        }
+    }
+
+    fn sample_alert() -> Alert {
+        Alert {
+            id: "alert-1".to_string(),
+            alert_type: "cpu".to_string(),
+            severity: "warning".to_string(),
+            message: "CPU usage high".to_string(),
+            value: 85.0,
+            threshold: 80.0,
+            since: Utc::now(),
+        }
+    }
+
+    fn sample_system_info() -> SystemInfo {
+        SystemInfo {
+            hostname: "testhost".to_string(),
+            os_name: "macOS".to_string(),
+            os_version: "14.0".to_string(),
+            kernel_version: "23.0.0".to_string(),
+            uptime_seconds: 86400,
+            cpu_count: 8,
+            total_memory_bytes: 16_000_000_000,
+        }
+    }
+
+    fn sample_network_metrics() -> NetworkMetrics {
+        NetworkMetrics {
+            interfaces: vec![NetworkInterface {
+                name: "en0".to_string(),
+                received_bytes: 1_000_000,
+                transmitted_bytes: 500_000,
+                received_packets: 10000,
+                transmitted_packets: 5000,
+            }],
+            total_received_bytes: 1_000_000,
+            total_transmitted_bytes: 500_000,
+        }
+    }
+
+    fn sample_disk_metrics() -> DiskMetrics {
+        DiskMetrics {
+            disks: vec![DiskInfo {
+                name: "disk0".to_string(),
+                mount_point: "/".to_string(),
+                file_system: "apfs".to_string(),
+                total_bytes: 500_000_000_000,
+                available_bytes: 200_000_000_000,
+                used_bytes: 300_000_000_000,
+                used_percent: 60.0,
+                is_removable: false,
+            }],
+        }
+    }
+
+    fn sample_system_metrics() -> SystemMetrics {
+        SystemMetrics {
+            cpu: sample_cpu_metrics(),
+            memory: sample_memory_metrics(),
+            load_avg: [1.5, 2.0, 1.8],
+            top_processes: vec![sample_process_info()],
+            alerts: vec![sample_alert()],
+            system: sample_system_info(),
+            network: sample_network_metrics(),
+            disk: sample_disk_metrics(),
+            timestamp: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn test_websocket_message_metrics_update_type() {
+        let data = sample_system_metrics();
+        let msg = WebSocketMessage::metrics_update(1, data);
+        assert_eq!(msg.msg_type, "metrics_update");
+    }
+
+    #[test]
+    fn test_websocket_message_metrics_update_has_data() {
+        let data = sample_system_metrics();
+        let msg = WebSocketMessage::metrics_update(42, data);
+        assert!(msg.data.is_some());
+        assert_eq!(msg.sequence, 42);
+    }
+
+    #[test]
+    fn test_websocket_message_ping_type() {
+        let msg = WebSocketMessage::ping(7);
+        assert_eq!(msg.msg_type, "ping");
+    }
+
+    #[test]
+    fn test_websocket_message_ping_has_no_data() {
+        let msg = WebSocketMessage::ping(7);
+        assert!(msg.data.is_none());
+        assert_eq!(msg.sequence, 7);
+    }
+
+    #[test]
+    fn test_process_info_serde_roundtrip() {
+        let proc = sample_process_info();
+        let json = serde_json::to_string(&proc).expect("serialize");
+        let deser: ProcessInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.pid, 1234);
+        assert_eq!(deser.name, "test_proc");
+        assert_eq!(deser.ppid, Some(1));
+        assert!(!deser.is_stale);
+        assert!(!deser.is_zombie);
+    }
+
+    #[test]
+    fn test_cpu_metrics_serde_roundtrip() {
+        let cpu = sample_cpu_metrics();
+        let json = serde_json::to_string(&cpu).expect("serialize");
+        let deser: CpuMetrics = serde_json::from_str(&json).expect("deserialize");
+        assert!((deser.overall_percent - 55.0).abs() < f32::EPSILON);
+        assert_eq!(deser.cores.len(), 1);
+        assert_eq!(deser.cores[0].id, 0);
+    }
+
+    #[test]
+    fn test_memory_metrics_serde_roundtrip() {
+        let mem = sample_memory_metrics();
+        let json = serde_json::to_string(&mem).expect("serialize");
+        let deser: MemoryMetrics = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.total_bytes, 16_000_000_000);
+        assert_eq!(deser.used_bytes, 8_000_000_000);
+        assert!((deser.used_percent - 50.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_network_interface_serde_roundtrip() {
+        let iface = NetworkInterface {
+            name: "lo0".to_string(),
+            received_bytes: 999,
+            transmitted_bytes: 888,
+            received_packets: 100,
+            transmitted_packets: 50,
+        };
+        let json = serde_json::to_string(&iface).expect("serialize");
+        let deser: NetworkInterface = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.name, "lo0");
+        assert_eq!(deser.received_bytes, 999);
+    }
+
+    #[test]
+    fn test_disk_info_serde_roundtrip() {
+        let disk = DiskInfo {
+            name: "sda1".to_string(),
+            mount_point: "/home".to_string(),
+            file_system: "ext4".to_string(),
+            total_bytes: 1_000_000_000_000,
+            available_bytes: 400_000_000_000,
+            used_bytes: 600_000_000_000,
+            used_percent: 60.0,
+            is_removable: true,
+        };
+        let json = serde_json::to_string(&disk).expect("serialize");
+        let deser: DiskInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.name, "sda1");
+        assert!(deser.is_removable);
+        assert!((deser.used_percent - 60.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_alert_serde_roundtrip() {
+        let alert = sample_alert();
+        let json = serde_json::to_string(&alert).expect("serialize");
+        let deser: Alert = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.id, "alert-1");
+        assert_eq!(deser.alert_type, "cpu");
+        assert_eq!(deser.severity, "warning");
+        assert!((deser.value - 85.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_system_info_serde_roundtrip() {
+        let sys = sample_system_info();
+        let json = serde_json::to_string(&sys).expect("serialize");
+        let deser: SystemInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.hostname, "testhost");
+        assert_eq!(deser.cpu_count, 8);
+        assert_eq!(deser.uptime_seconds, 86400);
+    }
+
+    #[test]
+    fn test_system_metrics_serde_roundtrip() {
+        let metrics = sample_system_metrics();
+        let json = serde_json::to_string(&metrics).expect("serialize");
+        let deser: SystemMetrics = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.top_processes.len(), 1);
+        assert_eq!(deser.alerts.len(), 1);
+        assert_eq!(deser.load_avg.len(), 3);
+    }
+
+    #[test]
+    fn test_websocket_message_serde_roundtrip() {
+        let msg = WebSocketMessage::ping(5);
+        let json = serde_json::to_string(&msg).expect("serialize");
+        let deser: WebSocketMessage = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.msg_type, "ping");
+        assert_eq!(deser.sequence, 5);
+        assert!(deser.data.is_none());
+    }
+
+    #[test]
+    fn test_websocket_message_with_data_serde_roundtrip() {
+        let msg = WebSocketMessage::metrics_update(10, sample_system_metrics());
+        let json = serde_json::to_string(&msg).expect("serialize");
+        let deser: WebSocketMessage = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.msg_type, "metrics_update");
+        assert!(deser.data.is_some());
+    }
+
+    #[test]
+    fn test_kill_request_deserialize() {
+        let json = r#"{"pid": 42, "signal": "TERM"}"#;
+        let req: KillRequest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(req.pid, 42);
+        assert_eq!(req.signal, Some("TERM".to_string()));
+    }
+
+    #[test]
+    fn test_kill_request_deserialize_no_signal() {
+        let json = r#"{"pid": 100}"#;
+        let req: KillRequest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(req.pid, 100);
+        assert!(req.signal.is_none());
+    }
+
+    #[test]
+    fn test_cleanup_request_deserialize() {
+        let json = r#"{"include_stale": true, "stale_max_age_hours": 48, "dry_run": true}"#;
+        let req: CleanupRequest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(req.include_stale, Some(true));
+        assert_eq!(req.stale_max_age_hours, Some(48));
+        assert_eq!(req.dry_run, Some(true));
+    }
+
+    #[test]
+    fn test_cleanup_request_deserialize_empty() {
+        let json = r#"{}"#;
+        let req: CleanupRequest = serde_json::from_str(json).expect("deserialize");
+        assert!(req.include_stale.is_none());
+        assert!(req.stale_max_age_hours.is_none());
+        assert!(req.dry_run.is_none());
+    }
+
+    #[test]
+    fn test_kill_stale_request_serde_roundtrip() {
+        let req = KillStaleRequest {
+            max_age_hours: Some(12),
+            dry_run: Some(false),
+        };
+        let json = serde_json::to_string(&req).expect("serialize");
+        let deser: KillStaleRequest = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.max_age_hours, Some(12));
+        assert_eq!(deser.dry_run, Some(false));
+    }
+
+    #[test]
+    fn test_kill_response_serde_roundtrip() {
+        let resp = KillResponse {
+            success: true,
+            message: "done".to_string(),
+        };
+        let json = serde_json::to_string(&resp).expect("serialize");
+        let deser: KillResponse = serde_json::from_str(&json).expect("deserialize");
+        assert!(deser.success);
+        assert_eq!(deser.message, "done");
+    }
+
+    #[test]
+    fn test_cleanup_response_serde_roundtrip() {
+        let resp = CleanupResponse {
+            killed_zombies: 2,
+            killed_stale: 3,
+            total_killed: 5,
+            freed_bytes: 1024,
+            processes: vec![KilledProcess {
+                pid: 99,
+                name: "zombie_proc".to_string(),
+                process_type: "zombie".to_string(),
+            }],
+        };
+        let json = serde_json::to_string(&resp).expect("serialize");
+        let deser: CleanupResponse = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.total_killed, 5);
+        assert_eq!(deser.processes.len(), 1);
+        assert_eq!(deser.processes[0].pid, 99);
+    }
+
+    #[test]
+    fn test_stale_process_serde_roundtrip() {
+        let sp = StaleProcess {
+            pid: 555,
+            name: "old_worker".to_string(),
+            cpu_percent: 0.1,
+            memory_bytes: 50_000,
+            runtime_hours: 48.5,
+            duplicate_count: 4,
+            stale_reason: "too old".to_string(),
+        };
+        let json = serde_json::to_string(&sp).expect("serialize");
+        let deser: StaleProcess = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.pid, 555);
+        assert_eq!(deser.duplicate_count, 4);
+    }
+
+    #[test]
+    fn test_container_info_default() {
+        let ci = ContainerInfo::default();
+        assert!(ci.id.is_empty());
+        assert!(ci.names.is_empty());
+        assert!(ci.ports.is_empty());
+    }
+
+    #[test]
+    fn test_container_info_serde_roundtrip() {
+        let ci = ContainerInfo {
+            id: "abc123".to_string(),
+            names: vec!["web".to_string()],
+            image: "nginx:latest".to_string(),
+            status: "Up 5 hours".to_string(),
+            state: "running".to_string(),
+            ports: vec![ContainerPort {
+                private_port: 80,
+                public_port: Some(8080),
+                port_type: "tcp".to_string(),
+            }],
+            cpu_percent: 2.5,
+            memory_bytes: 50_000_000,
+            memory_percent: 1.2,
+        };
+        let json = serde_json::to_string(&ci).expect("serialize");
+        let deser: ContainerInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.id, "abc123");
+        assert_eq!(deser.ports[0].public_port, Some(8080));
+    }
+
+    #[test]
+    fn test_health_response_serde_roundtrip() {
+        let hr = HealthResponse {
+            status: "ok".to_string(),
+            version: "0.1.0".to_string(),
+            uptime_seconds: 1000,
+            timestamp: Utc::now(),
+        };
+        let json = serde_json::to_string(&hr).expect("serialize");
+        let deser: HealthResponse = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.status, "ok");
+        assert_eq!(deser.version, "0.1.0");
+    }
+
+    #[test]
+    fn test_process_list_params_default() {
+        let params = ProcessListParams::default();
+        assert!(params.sort_by.is_none());
+        assert!(params.limit.is_none());
+        assert!(params.filter.is_none());
+    }
+
+    #[test]
+    fn test_stale_response_serde_roundtrip() {
+        let resp = StaleResponse {
+            processes: vec![],
+            total_memory_waste_bytes: 0,
+            stale_count: 0,
+            zombie_count: 0,
+        };
+        let json = serde_json::to_string(&resp).expect("serialize");
+        let deser: StaleResponse = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.stale_count, 0);
+        assert!(deser.processes.is_empty());
+    }
+}

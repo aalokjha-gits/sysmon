@@ -1,0 +1,285 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+        include:
+          - target: aarch64-apple-darwin
+            arch: arm64
+          - target: x86_64-apple-darwin
+            arch: x86_64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ui
+        run: npm run build
+
+      - name: Build Rust binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sysmon-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/sysmon
+          if-no-files-found: error
+
+      - name: Create tarball
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/sysmon dist/sysmon-${{ matrix.target }}
+          cd dist
+          tar czf sysmon-${{ matrix.target }}.tar.gz sysmon-${{ matrix.target }}
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sysmon-${{ matrix.target }}-tarball
+          path: dist/sysmon-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  build-universal:
+    name: Build Universal Binary
+    needs: build
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ui
+        run: npm run build
+
+      - name: Build for ARM64
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Build for x86_64
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Create universal binary
+        run: |
+          mkdir -p target/release
+          lipo -create \
+            target/aarch64-apple-darwin/release/sysmon \
+            target/x86_64-apple-darwin/release/sysmon \
+            -output target/release/sysmon-universal
+          chmod +x target/release/sysmon-universal
+
+      - name: Verify universal binary
+        run: |
+          file target/release/sysmon-universal
+          lipo -info target/release/sysmon-universal
+          ./target/release/sysmon-universal --version
+
+      - name: Strip universal binary
+        run: strip target/release/sysmon-universal || true
+
+      - name: Create tarball
+        run: |
+          mkdir -p dist
+          cp target/release/sysmon-universal dist/sysmon
+          cd dist
+          tar czf sysmon-universal.tar.gz sysmon
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          shasum -a 256 *.tar.gz > checksums.txt
+          cat checksums.txt
+
+      - name: Upload universal binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sysmon-universal
+          path: target/release/sysmon-universal
+          if-no-files-found: error
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build-universal
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+
+          # Copy all artifacts
+          cp artifacts/dist/*.tar.gz release/ 2>/dev/null || true
+          cp artifacts/dist/checksums.txt release/
+          cp artifacts/sysmon-aarch64-apple-darwin/sysmon release/sysmon-aarch64-apple-darwin
+          cp artifacts/sysmon-x86_64-apple-darwin/sysmon release/sysmon-x86_64-apple-darwin
+          cp artifacts/sysmon-universal/sysmon-universal release/sysmon-universal
+
+          # Generate new checksums
+          cd release
+          shasum -a 256 * > checksums.txt
+          cat checksums.txt
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Get previous tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "## Changes since $PREVIOUS_TAG" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG"..HEAD >> CHANGELOG.md
+          else
+            echo "## Initial Release" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          fi
+
+          echo "" >> CHANGELOG.md
+          echo "## Assets" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "- \`sysmon-universal\` - Universal macOS binary (ARM64 + x86_64)" >> CHANGELOG.md
+          echo "- \`sysmon-aarch64-apple-darwin\` - macOS ARM64 binary" >> CHANGELOG.md
+          echo "- \`sysmon-x86_64-apple-darwin\` - macOS x86_64 binary" >> CHANGELOG.md
+          echo "- \`checksums.txt\` - SHA256 checksums for all files" >> CHANGELOG.md
+
+          cat CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: sysmon ${{ steps.changelog.outputs.version }}
+          body_path: CHANGELOG.md
+          files: |
+            release/checksums.txt
+            release/*.tar.gz
+            release/sysmon-aarch64-apple-darwin
+            release/sysmon-x86_64-apple-darwin
+            release/sysmon-universal
+          draft: false
+          prerelease: ${{ contains(steps.changelog.outputs.version, 'alpha') || contains(steps.changelog.outputs.version, 'beta') || contains(steps.changelog.outputs.version, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Calculate checksums
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          # Download universal binary
+          curl -sL -o sysmon-universal "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/sysmon-universal"
+          UNIVERSAL_SHA=$(sha256sum sysmon-universal | cut -d' ' -f1)
+          echo "UNIVERSAL_SHA=$UNIVERSAL_SHA" >> $GITHUB_ENV
+
+      - name: Update formula
+        run: |
+          sed -i "s/version \".*\"/version \"$VERSION\"/" homebrew/sysmon.rb
+          sed -i "s/sha256 \".*\"/sha256 \"$UNIVERSAL_SHA\"/" homebrew/sysmon.rb
+
+          cat homebrew/sysmon.rb
+
+      - name: Create PR to homebrew-tap
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          commit-message: "sysmon ${{ env.VERSION }}"
+          title: "sysmon ${{ env.VERSION }}"
+          body: |
+            Automated update for sysmon ${{ env.VERSION }}
+
+            - Version: ${{ env.VERSION }}
+            - SHA256: ${{ env.UNIVERSAL_SHA }}
+          branch: update-sysmon-${{ env.VERSION }}
+          delete-branch: true

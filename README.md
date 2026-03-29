@@ -1,0 +1,273 @@
+# sysmon
+
+<p align="center">
+  <img src="assets/logo.svg" alt="sysmon logo" width="120">
+</p>
+
+<p align="center">
+  <b>Lightweight system monitoring dashboard with a beautiful web UI</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/aalokjha-gits/sysmon/releases/latest">
+    <img src="https://img.shields.io/github/v/release/aalokjha-gits/sysmon?include_prereleases&sort=semver&style=flat-square" alt="Release">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
+  </a>
+  <a href="https://www.rust-lang.org">
+    <img src="https://img.shields.io/badge/Rust-1.75+-orange?style=flat-square&logo=rust" alt="Rust">
+  </a>
+  <a href="https://svelte.dev">
+    <img src="https://img.shields.io/badge/Svelte-5-ff3e00?style=flat-square&logo=svelte" alt="Svelte">
+  </a>
+</p>
+
+---
+
+## Features
+
+- **Single Binary** — Everything embedded, no external dependencies
+- **Beautiful UI** — Modern Svelte 5 dashboard with real-time updates
+- **Lightweight** — Minimal resource footprint, written in Rust
+- **Real-time Metrics** — CPU, memory, disk, network, and process monitoring
+- **WebSocket Streaming** — Live data push to the browser
+- **Process Management** — Kill processes, detect stale/zombie processes, batch cleanup
+- **Container Monitoring** — Docker and Podman container stats
+- **Alert System** — Configurable CPU/memory thresholds with consecutive sample tracking
+- **Responsive Design** — Works on desktop, tablet, and mobile
+- **Configurable** — TOML-based configuration with sensible defaults
+
+## Quick Install
+
+### Option 1: One-liner (macOS)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/aalokjha-gits/sysmon/main/install.sh | sh
+```
+
+### Option 2: Homebrew
+
+```bash
+brew tap aalokjha-gits/sysmon
+brew install sysmon
+```
+
+### Option 3: Build from source
+
+```bash
+git clone https://github.com/aalokjha-gits/sysmon.git
+cd sysmon
+make install
+```
+
+## Usage
+
+### Start with defaults
+
+```bash
+sysmon
+```
+
+Picks an ephemeral port and opens your browser automatically.
+
+### Custom port
+
+```bash
+sysmon --port 8080
+```
+
+### Without browser
+
+```bash
+sysmon --no-browser
+```
+
+### JSON output mode
+
+```bash
+sysmon --json
+```
+
+### All options
+
+```
+USAGE:
+    sysmon [OPTIONS]
+
+OPTIONS:
+    -p, --port <PORT>        Server port (0 for ephemeral) [env: SYSMON_PORT]
+    -i, --interval <MS>      Metrics collection interval in ms [env: SYSMON_INTERVAL]
+    -c, --config <PATH>      Configuration file path [env: SYSMON_CONFIG]
+        --no-browser         Disable auto-browser open [env: SYSMON_NO_BROWSER]
+        --json               Output format as JSON
+    -h, --help               Print help information
+    -V, --version            Print version information
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────┐
+│           Single Binary                 │
+│  ┌──────────────┐  ┌────────────────┐   │
+│  │   Rust       │  │  Svelte UI     │   │
+│  │   Backend    │  │  (embedded)    │   │
+│  │              │  │                │   │
+│  │ • Axum       │  │ • Real-time    │   │
+│  │ • WebSocket  │  │   dashboard    │   │
+│  │ • sysinfo    │  │ • Process mgmt │   │
+│  └──────────────┘  └────────────────┘   │
+│           ↕ WebSocket                   │
+└─────────────────────────────────────────┘
+                   ↕
+         ┌─────────────────┐
+         │  Web Browser    │
+         └─────────────────┘
+```
+
+### Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Backend | Rust + Axum + Tokio |
+| Frontend | Svelte 5 + TypeScript |
+| Styling | Custom CSS variables (dark theme) |
+| Visualizations | Custom CSS bars + SVG gauges |
+| Icons | Inline SVG |
+| Embedding | rust-embed (compressed) |
+
+## Configuration
+
+sysmon looks for configuration in this order:
+
+1. Path passed via `--config`
+2. `sysmon.toml` in the current directory
+3. `/etc/sysmon/config.toml`
+4. `~/.config/sysmon/config.toml`
+5. Built-in defaults
+
+Create a config file:
+
+```toml
+# Server port (0 = ephemeral)
+port = 0
+
+# Metrics collection interval in milliseconds
+interval_ms = 2000
+
+# Output format: "json" or "text"
+format = "text"
+
+# Disable auto-browser open
+no_browser = false
+
+# Whether to allow killing root-owned processes
+allow_root_kill = false
+
+# Alert thresholds
+[alerts]
+cpu_warning = 80.0
+cpu_critical = 95.0
+memory_warning = 90.0
+memory_critical = 95.0
+consecutive_samples = 3
+
+# Stale process detection
+[stale_detection]
+max_age_hours = 24
+max_cpu_percent = 1.0
+min_duplicate_count = 3
+
+# Processes that can never be killed
+# Default includes kernel_task, launchd, WindowServer, etc.
+# protected_processes = ["kernel_task", "launchd", "sysmon"]
+```
+
+## API
+
+sysmon exposes a REST + WebSocket API:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Health check |
+| `GET` | `/api/metrics/system` | Full system metrics |
+| `GET` | `/api/metrics/cpu` | CPU metrics only |
+| `GET` | `/api/metrics/memory` | Memory metrics only |
+| `GET` | `/api/containers` | Docker/Podman containers |
+| `GET` | `/api/processes` | Process list (supports `sort_by`, `limit`, `filter` query params) |
+| `GET` | `/api/processes/stale` | Stale processes |
+| `POST` | `/api/actions/kill` | Kill a process |
+| `POST` | `/api/actions/kill-stale` | Kill stale processes |
+| `POST` | `/api/actions/cleanup` | Batch cleanup (zombies + stale) |
+| `WS` | `/ws` | Real-time metrics stream |
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full development setup.
+
+### Quick start
+
+```bash
+# Install dependencies
+cd ui && npm install && cd ..
+
+# Terminal 1: UI dev server
+cd ui && npm run dev
+
+# Terminal 2: Rust backend
+cargo run
+```
+
+### Build
+
+```bash
+make build      # Development build
+make release    # Optimized release build
+make universal  # Universal macOS binary (arm64 + x86_64)
+```
+
+### Test & Lint
+
+```bash
+make test       # Run all tests
+make lint       # Run clippy + svelte-check
+```
+
+## Makefile Targets
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Build UI + Rust binary |
+| `make dev` | Show development instructions |
+| `make ui` | Build Svelte UI only |
+| `make release` | Optimized release binary |
+| `make universal` | Universal macOS binary (arm64 + x86_64) |
+| `make install` | Install to `/usr/local/bin` |
+| `make uninstall` | Remove from `/usr/local/bin` |
+| `make lint` | Run clippy + svelte-check |
+| `make test` | Run tests |
+| `make clean` | Remove build artifacts |
+
+## Roadmap
+
+- [ ] Linux support
+- [ ] Windows support
+- [ ] GPU monitoring
+- [ ] Temperature monitoring
+- [ ] Historical data persistence
+- [ ] Alerts and notifications (desktop/email)
+- [ ] Light theme
+- [ ] Docker container image
+- [ ] Plugin system
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [sysinfo](https://github.com/GuillaumeGomez/sysinfo) — System information gathering
+- [Axum](https://github.com/tokio-rs/axum) — Web framework
+- [Svelte](https://svelte.dev) — Frontend framework
+- [rust-embed](https://github.com/pyrossh/rust-embed) — Static file embedding
