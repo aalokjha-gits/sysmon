@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type ViewId = 'overview' | 'processes' | 'network' | 'containers' | 'alerts' | 'system';
+export type ViewId = 'overview' | 'processes' | 'network' | 'containers' | 'alerts';
 
 export interface ViewDef {
   id: ViewId;
@@ -14,7 +14,6 @@ export const views: ViewDef[] = [
   { id: 'network', label: 'Network', shortcut: '3' },
   { id: 'containers', label: 'Containers', shortcut: '4' },
   { id: 'alerts', label: 'Alerts', shortcut: '5' },
-  { id: 'system', label: 'System', shortcut: '6' },
 ];
 
 export const activeView = writable<ViewId>('overview');

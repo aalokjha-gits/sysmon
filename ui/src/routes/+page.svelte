@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { connect, disconnect, fetchHealth, connected, metrics, startProcessPolling, stopProcessPolling } from '$lib/stores/metrics';
+  import { startMetricsHistory, stopMetricsHistory } from '$lib/stores/metricsHistory';
   import { activeView } from '$lib/stores/navigation';
   import Header from '$lib/components/Header.svelte';
   import MetricPill from '$lib/components/MetricPill.svelte';
@@ -10,7 +11,6 @@
   import NetworkView from '$lib/views/NetworkView.svelte';
   import ContainersView from '$lib/views/ContainersView.svelte';
   import AlertsView from '$lib/views/AlertsView.svelte';
-  import SystemView from '$lib/views/SystemView.svelte';
 
   let healthCheckInterval: ReturnType<typeof setInterval>;
 
@@ -27,6 +27,7 @@
   onMount(() => {
     connect();
     startProcessPolling();
+    startMetricsHistory();
     fetchHealth().catch(console.error);
 
     healthCheckInterval = setInterval(() => {
@@ -37,6 +38,7 @@
   });
 
   onDestroy(() => {
+    stopMetricsHistory();
     stopProcessPolling();
     disconnect();
     clearInterval(healthCheckInterval);
@@ -70,8 +72,6 @@
         <ContainersView />
       {:else if $activeView === 'alerts'}
         <AlertsView />
-      {:else if $activeView === 'system'}
-        <SystemView />
       {/if}
     </main>
   </div>
@@ -87,6 +87,7 @@
 
   .metric-bar {
     display: flex;
+    justify-content: center;
     gap: 0.125rem;
     padding: 0.25rem 0.75rem;
     background: var(--bg-surface);

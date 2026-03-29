@@ -23,9 +23,6 @@
     alerts: {
       path: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
     },
-    system: {
-      path: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 0M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
-    },
   };
 
   function getIcon(viewId: string): { path: string; viewBox: string } {
@@ -84,21 +81,20 @@
   .sidebar {
     display: flex;
     flex-direction: column;
-    width: 52px;
+    width: 148px;
     background: var(--bg-surface);
     border-right: 1px solid var(--border-color);
     padding: 6px 0;
     gap: 2px;
     flex-shrink: 0;
     overflow: hidden;
-    transition: width var(--transition-normal);
   }
 
   .nav-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0;
+    padding: 8px 10px;
     margin: 0 6px;
     border-radius: var(--radius-md);
     color: var(--text-muted);
@@ -107,7 +103,7 @@
     cursor: pointer;
     position: relative;
     transition: all var(--transition-fast);
-    justify-content: center;
+    justify-content: flex-start;
     min-height: 36px;
   }
 
@@ -169,14 +165,12 @@
   }
 
   .nav-label {
-    display: none;
     font-size: var(--font-xs);
     font-weight: 500;
     white-space: nowrap;
   }
 
   .shortcut {
-    display: none;
     font-size: 10px;
     color: var(--text-muted);
     background: var(--bg-elevated);
@@ -184,24 +178,6 @@
     border-radius: 3px;
     font-family: var(--font-mono);
     margin-left: auto;
-  }
-
-  /* Expanded sidebar on hover */
-  .sidebar:hover {
-    width: 160px;
-  }
-
-  .sidebar:hover .nav-item {
-    justify-content: flex-start;
-    padding: 8px 10px;
-  }
-
-  .sidebar:hover .nav-label {
-    display: block;
-  }
-
-  .sidebar:hover .shortcut {
-    display: block;
   }
 
   /* Mobile: bottom nav */
@@ -249,15 +225,6 @@
 
     .shortcut {
       display: none;
-    }
-
-    .sidebar:hover {
-      width: 100% !important;
-    }
-
-    .sidebar:hover .nav-item {
-      justify-content: center;
-      padding: 4px 6px;
     }
   }
 </style>

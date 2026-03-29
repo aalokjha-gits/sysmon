@@ -32,19 +32,26 @@
 
 <style>
   .network-view {
-    height: 100%;
-    overflow-y: auto;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
+    padding: 12px;
+    align-items: stretch;
+    height: 100%;
+  }
+
+  @media (max-width: 1024px) {
+    .network-view {
+      grid-template-columns: 1fr;
+    }
   }
 
   .section {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    overflow: hidden;
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
   }
 
   .section-title {
@@ -76,6 +83,5 @@
 
   .section-content :global(.ports-list) {
     max-height: none;
-    overflow: visible;
   }
 </style>
