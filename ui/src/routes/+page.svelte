@@ -87,8 +87,8 @@
 
   .metric-bar {
     display: flex;
-    gap: 2px;
-    padding: 4px 12px;
+    gap: 0.125rem;
+    padding: 0.25rem 0.75rem;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
@@ -119,8 +119,8 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 0.5rem 0.625rem;
+    gap: 0.375rem;
     min-width: 0;
   }
 
