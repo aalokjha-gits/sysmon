@@ -1,11 +1,11 @@
 <script lang="ts">
-  import CpuCoresCompact from '$lib/components/CpuCoresCompact.svelte';
+  import CpuCoresChart from '$lib/components/CpuCoresChart.svelte';
   import LoadCompact from '$lib/components/LoadCompact.svelte';
   import DiskCompact from '$lib/components/DiskCompact.svelte';
   import AlertsCompact from '$lib/components/AlertsCompact.svelte';
   import TimeSeriesChart from '$lib/components/TimeSeriesChart.svelte';
   import { metrics, serverPort, serverUptime, networkMetrics, portMetrics } from '$lib/stores/metrics';
-  import { cpuHistory, memoryHistory } from '$lib/stores/metricsHistory';
+  import { cpuHistory, memoryHistory, coreHistory } from '$lib/stores/metricsHistory';
   import { setView } from '$lib/stores/navigation';
   import { formatUptime } from '$lib/utils/format';
 
@@ -58,15 +58,14 @@
     </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <CpuCoresCompact />
-    </div>
+  <div class="chart-card cores-chart">
+    <CpuCoresChart coreData={$coreHistory} />
+  </div>
 
+  <div class="bottom-row">
     <div class="card">
       <LoadCompact />
     </div>
-
     <div class="card">
       <DiskCompact />
     </div>
@@ -152,9 +151,18 @@
     overflow: hidden;
   }
 
-  .grid {
+  .cores-chart {
+    padding: 0;
+  }
+
+  .cores-chart :global(> *) {
+    border: none;
+    border-radius: 0;
+  }
+
+  .bottom-row {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     flex-shrink: 0;
   }
@@ -164,6 +172,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     overflow: hidden;
+    min-width: 0;
   }
 
   .card :global(> *) {
@@ -226,7 +235,7 @@
       grid-template-columns: 1fr;
     }
 
-    .grid {
+    .bottom-row {
       grid-template-columns: 1fr;
     }
 

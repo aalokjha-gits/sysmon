@@ -10,11 +10,25 @@ const MAX_POINTS = 150;
 
 export const cpuHistory = writable<TimeSeriesPoint[]>([]);
 export const memoryHistory = writable<TimeSeriesPoint[]>([]);
+export const coreHistory = writable<Map<number, TimeSeriesPoint[]>>(new Map());
 
 function appendPoint(store: typeof cpuHistory, value: number): void {
   store.update(points => {
     const next = [...points, { timestamp: Date.now(), value }];
     return next.length > MAX_POINTS ? next.slice(-MAX_POINTS) : next;
+  });
+}
+
+function appendCorePoints(cores: Array<{ usage_percent: number }>): void {
+  const now = Date.now();
+  coreHistory.update(map => {
+    const next = new Map(map);
+    for (let i = 0; i < cores.length; i++) {
+      const existing = next.get(i) ?? [];
+      const updated = [...existing, { timestamp: now, value: cores[i].usage_percent }];
+      next.set(i, updated.length > MAX_POINTS ? updated.slice(-MAX_POINTS) : updated);
+    }
+    return next;
   });
 }
 
@@ -26,6 +40,9 @@ export function startMetricsHistory(): void {
     if (!$m) return;
     appendPoint(cpuHistory, $m.cpu.overall_percent);
     appendPoint(memoryHistory, $m.memory.used_percent);
+    if ($m.cpu.cores?.length > 0) {
+      appendCorePoints($m.cpu.cores);
+    }
   });
 }
 

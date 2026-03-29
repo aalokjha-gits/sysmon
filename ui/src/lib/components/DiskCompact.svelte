@@ -84,10 +84,11 @@
   .disk-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: var(--font-xs);
     padding: 3px 0;
     overflow: hidden;
+    flex-wrap: wrap;
   }
 
   .disk-row.skeleton {
@@ -95,7 +96,8 @@
   }
 
   .disk-mount {
-    min-width: 50px;
+    min-width: 30px;
+    max-width: 80px;
     color: var(--text-primary);
     font-weight: 500;
     overflow: hidden;
@@ -110,7 +112,6 @@
     border-radius: 2px;
     overflow: hidden;
     min-width: 40px;
-    max-width: 80px;
   }
 
   .disk-bar-fill {
@@ -127,13 +128,13 @@
 
   .disk-size {
     color: var(--text-secondary);
-    min-width: 80px;
+    white-space: nowrap;
     text-align: right;
   }
 
   .disk-fs {
     color: var(--text-muted);
-    min-width: 30px;
+    white-space: nowrap;
     text-align: right;
   }
 
