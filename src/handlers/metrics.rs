@@ -1,10 +1,7 @@
 use crate::handlers::AppState;
 use crate::models::{CpuMetrics, MemoryMetrics, SystemMetrics};
-use axum::{
-    extract::State,
-    response::Json,
-};
 use axum::http::StatusCode;
+use axum::{extract::State, response::Json};
 
 /// Get full system metrics
 pub async fn system_metrics_handler(

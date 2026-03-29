@@ -1,11 +1,8 @@
-use crate::handlers::AppState;
-use crate::models::{CleanupRequest, KillRequest, KillResponse, CleanupResponse, KillStaleRequest};
 use crate::actions::{cleanup_processes, kill_process};
-use axum::{
-    extract::State,
-    Json,
-};
+use crate::handlers::AppState;
+use crate::models::{CleanupRequest, CleanupResponse, KillRequest, KillResponse, KillStaleRequest};
 use axum::http::StatusCode;
+use axum::{extract::State, Json};
 
 /// Kill a single process
 pub async fn kill_handler(
@@ -30,13 +27,15 @@ pub async fn kill_stale_handler(
     Json(request): Json<KillStaleRequest>,
 ) -> Result<Json<CleanupResponse>, StatusCode> {
     let dry_run = request.dry_run.unwrap_or(false);
-    
+
     match cleanup_processes(
         true, // include_stale
         request.max_age_hours,
         dry_run,
         &state.config,
-    ).await {
+    )
+    .await
+    {
         Ok(response) => Ok(Json(response)),
         Err(e) => {
             tracing::error!("Failed to kill stale processes: {}", e);
@@ -52,13 +51,15 @@ pub async fn cleanup_handler(
 ) -> Result<Json<CleanupResponse>, StatusCode> {
     let include_stale = request.include_stale.unwrap_or(true);
     let dry_run = request.dry_run.unwrap_or(false);
-    
+
     match cleanup_processes(
         include_stale,
         request.stale_max_age_hours,
         dry_run,
         &state.config,
-    ).await {
+    )
+    .await
+    {
         Ok(response) => Ok(Json(response)),
         Err(e) => {
             tracing::error!("Failed to cleanup processes: {}", e);

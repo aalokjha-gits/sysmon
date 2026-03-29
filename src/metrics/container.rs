@@ -9,7 +9,10 @@ pub async fn collect_container_info() -> Vec<ContainerInfo> {
         // Try Podman first
         match try_podman() {
             Ok(containers) => {
-                debug!("Successfully collected {} containers from Podman", containers.len());
+                debug!(
+                    "Successfully collected {} containers from Podman",
+                    containers.len()
+                );
                 return containers;
             }
             Err(e) => {
@@ -20,7 +23,10 @@ pub async fn collect_container_info() -> Vec<ContainerInfo> {
         // Fall back to Docker
         match try_docker() {
             Ok(containers) => {
-                debug!("Successfully collected {} containers from Docker", containers.len());
+                debug!(
+                    "Successfully collected {} containers from Docker",
+                    containers.len()
+                );
                 containers
             }
             Err(e) => {
@@ -28,7 +34,9 @@ pub async fn collect_container_info() -> Vec<ContainerInfo> {
                 Vec::new()
             }
         }
-    }).await {
+    })
+    .await
+    {
         Ok(containers) => containers,
         Err(e) => {
             error!("Container collection task panicked: {}", e);
@@ -75,10 +83,7 @@ fn parse_container_output(data: &[u8]) -> anyhow::Result<Vec<ContainerInfo>> {
 
     // Try to parse as an array first
     if let Ok(containers) = serde_json::from_str::<Vec<PodmanContainer>>(&json_str) {
-        return Ok(containers
-            .into_iter()
-            .map(|c| c.into())
-            .collect());
+        return Ok(containers.into_iter().map(|c| c.into()).collect());
     }
 
     // Try to parse as a single object (newline-delimited JSON)
@@ -169,7 +174,9 @@ pub async fn get_container_stats() -> Vec<ContainerInfo> {
         }
 
         Vec::new()
-    }).await {
+    })
+    .await
+    {
         Ok(stats) => stats,
         Err(e) => {
             error!("Container stats task panicked: {}", e);
@@ -294,19 +301,18 @@ fn parse_byte_size(size: &str) -> u64 {
     let size = size.trim();
 
     // Extract number and unit
-    let (num_str, unit) = size.chars().fold(
-        (String::new(), String::new()),
-        |(mut num, mut unit), c| {
-            if c.is_ascii_digit() || c == '.' {
-                if unit.is_empty() {
-                    num.push(c);
+    let (num_str, unit) =
+        size.chars()
+            .fold((String::new(), String::new()), |(mut num, mut unit), c| {
+                if c.is_ascii_digit() || c == '.' {
+                    if unit.is_empty() {
+                        num.push(c);
+                    }
+                } else {
+                    unit.push(c);
                 }
-            } else {
-                unit.push(c);
-            }
-            (num, unit)
-        },
-    );
+                (num, unit)
+            });
 
     let num: f64 = num_str.parse().unwrap_or(0.0);
     let multiplier = match unit.trim().to_lowercase().as_str() {

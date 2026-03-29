@@ -1,3 +1,4 @@
+use axum::http::{HeaderValue, Method};
 use axum::{
     body::Body,
     http::Request,
@@ -9,7 +10,6 @@ use axum::{
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use axum::http::{Method, HeaderValue};
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
     trace::TraceLayer,
@@ -51,7 +51,7 @@ pub async fn create_server(
 
     // Create API router
     let api_router = create_api_router();
-    
+
     // Create router
     let app = Router::new()
         // WebSocket endpoint
@@ -73,9 +73,11 @@ pub async fn create_server(
                         version = ?request.version(),
                     )
                 })
-                .on_response(|_response: &Response, _latency: std::time::Duration, _span: &Span| {
-                    // Log response details if needed
-                }),
+                .on_response(
+                    |_response: &Response, _latency: std::time::Duration, _span: &Span| {
+                        // Log response details if needed
+                    },
+                ),
         )
         .layer(middleware::from_fn(logging_middleware))
         .with_state(app_state);
@@ -111,10 +113,7 @@ async fn logging_middleware(request: Request<Body>, next: Next) -> Response {
 }
 
 /// Start the server and return the port it's listening on
-pub async fn start_server(
-    app: Router,
-    port: u16,
-) -> anyhow::Result<()> {
+pub async fn start_server(app: Router, port: u16) -> anyhow::Result<()> {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     let listener = TcpListener::bind(&addr).await?;
 
@@ -124,5 +123,3 @@ pub async fn start_server(
 
     Ok(())
 }
-
-

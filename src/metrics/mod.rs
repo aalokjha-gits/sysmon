@@ -86,18 +86,26 @@ impl MetricsCollector {
         let mut top_processes = processes.clone();
         if top_processes.len() > 20 {
             top_processes.select_nth_unstable_by(19, |a, b| {
-                b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal)
+                b.cpu_percent
+                    .partial_cmp(&a.cpu_percent)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
             top_processes.truncate(20);
-            top_processes.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
+            top_processes.sort_by(|a, b| {
+                b.cpu_percent
+                    .partial_cmp(&a.cpu_percent)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
         } else {
-            top_processes.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
+            top_processes.sort_by(|a, b| {
+                b.cpu_percent
+                    .partial_cmp(&a.cpu_percent)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
         }
 
         // Evaluate alerts
-        let alerts = self
-            .evaluate_alerts(&cpu, &memory, &processes)
-            .await;
+        let alerts = self.evaluate_alerts(&cpu, &memory, &processes).await;
 
         Ok(SystemMetrics {
             cpu,
@@ -133,9 +141,10 @@ impl MetricsCollector {
 
                 match self.collect().await {
                     Ok(metrics) => {
-                        debug!("Collected metrics: CPU {:.1}%, Memory {:.1}%", 
-                            metrics.cpu.overall_percent, 
-                            metrics.memory.used_percent);
+                        debug!(
+                            "Collected metrics: CPU {:.1}%, Memory {:.1}%",
+                            metrics.cpu.overall_percent, metrics.memory.used_percent
+                        );
                         ws_state.broadcast_metrics(metrics);
                     }
                     Err(e) => {
@@ -244,7 +253,12 @@ impl MetricsCollector {
             alerts.push(Alert {
                 id: uuid::Uuid::new_v4().to_string(),
                 alert_type: "zombie_processes".to_string(),
-                severity: if zombie_count > 20 { "critical" } else { "warning" }.to_string(),
+                severity: if zombie_count > 20 {
+                    "critical"
+                } else {
+                    "warning"
+                }
+                .to_string(),
                 message: format!("Found {} zombie processes", zombie_count),
                 value: zombie_count as f64,
                 threshold: 5.0,

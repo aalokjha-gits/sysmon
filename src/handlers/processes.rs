@@ -1,11 +1,11 @@
 use crate::handlers::AppState;
-use crate::models::{ProcessInfo, ProcessListParams, StaleResponse};
 use crate::metrics::process::detect_stale_processes;
+use crate::models::{ProcessInfo, ProcessListParams, StaleResponse};
+use axum::http::StatusCode;
 use axum::{
     extract::{Query, State},
     response::Json,
 };
-use axum::http::StatusCode;
 
 /// Get process list with optional filtering and sorting
 pub async fn processes_handler(

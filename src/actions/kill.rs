@@ -3,7 +3,11 @@ use std::process::Command;
 use tracing::{error, info};
 
 /// Kill a process by PID with optional signal
-pub async fn kill_process(pid: u32, signal: Option<String>, config: &Config) -> anyhow::Result<String> {
+pub async fn kill_process(
+    pid: u32,
+    signal: Option<String>,
+    config: &Config,
+) -> anyhow::Result<String> {
     // Safety checks
     if pid == 1 {
         return Err(anyhow::anyhow!("Cannot kill system init process (PID 1)"));
@@ -16,7 +20,7 @@ pub async fn kill_process(pid: u32, signal: Option<String>, config: &Config) -> 
 
     // Try to get process info for additional checks
     let process_name = get_process_name(pid).await.unwrap_or_default();
-    
+
     if !process_name.is_empty() {
         let protected = config.protected_processes_set();
         if protected.contains(&process_name) {
@@ -96,8 +100,13 @@ fn parse_signal(sig: &str) -> Result<i32, String> {
         "TERM" | "SIGTERM" | "15" => Ok(15),
         "USR1" | "SIGUSR1" | "10" => Ok(10),
         "USR2" | "SIGUSR2" | "12" => Ok(12),
-        "KILL" | "SIGKILL" | "9" => Err("SIGKILL (9) is not allowed for safety. Use SIGTERM (15) instead.".to_string()),
-        _ => Err(format!("Unsupported signal: {}. Allowed: TERM, HUP, INT, QUIT, USR1, USR2", sig)),
+        "KILL" | "SIGKILL" | "9" => {
+            Err("SIGKILL (9) is not allowed for safety. Use SIGTERM (15) instead.".to_string())
+        }
+        _ => Err(format!(
+            "Unsupported signal: {}. Allowed: TERM, HUP, INT, QUIT, USR1, USR2",
+            sig
+        )),
     }
 }
 

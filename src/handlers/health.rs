@@ -1,9 +1,6 @@
 use crate::handlers::AppState;
 use crate::models::HealthResponse;
-use axum::{
-    extract::State,
-    response::Json,
-};
+use axum::{extract::State, response::Json};
 use chrono::Utc;
 
 /// Health check handler

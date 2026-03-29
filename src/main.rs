@@ -44,7 +44,6 @@ struct Cli {
     /// Configuration file path
     #[arg(short, long, env = "SYSMON_CONFIG")]
     config: Option<String>,
-
 }
 
 #[tokio::main]
@@ -53,11 +52,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize logging
-    let log_level = if cli.json {
-        Level::WARN
-    } else {
-        Level::INFO
-    };
+    let log_level = if cli.json { Level::WARN } else { Level::INFO };
 
     let subscriber = FmtSubscriber::builder()
         .with_max_level(log_level)
@@ -86,7 +81,9 @@ async fn main() -> Result<()> {
     let metrics_collector = Arc::new(MetricsCollector::new(config.clone()));
 
     // Start metrics collection in background
-    let _collection_task = metrics_collector.clone().start_collection_task(ws_state.clone());
+    let _collection_task = metrics_collector
+        .clone()
+        .start_collection_task(ws_state.clone());
 
     // Create and start server
     let (app, port) = create_server(config.clone(), ws_state.clone(), metrics_collector).await?;

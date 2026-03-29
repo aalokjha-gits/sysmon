@@ -25,11 +25,13 @@ pub async fn cleanup_processes(
     let zombies = get_zombie_processes().await?;
 
     // Batch limit check
-    let total_to_kill = zombies.len() as u32 +
-        (if include_stale {
+    let total_to_kill = zombies.len() as u32
+        + (if include_stale {
             // Estimate stale processes count - actual count will be determined below
             0 // Will check later for stale processes
-        } else { 0 });
+        } else {
+            0
+        });
     if total_to_kill > MAX_BATCH_KILL {
         return Err(anyhow::anyhow!(
             "Too many zombie processes to kill at once ({}). Use filters or manual selection.",
@@ -285,5 +287,3 @@ async fn kill_process_safe(pid: u32, config: &Config) -> anyhow::Result<String> 
         Err(anyhow::anyhow!("Failed to kill process: {}", stderr))
     }
 }
-
-

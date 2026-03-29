@@ -169,5 +169,3 @@ async fn handle_socket(socket: WebSocket, state: WebSocketState) {
     recv_task.abort();
     info!("WebSocket connection closed");
 }
-
-
