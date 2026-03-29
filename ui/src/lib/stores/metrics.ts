@@ -4,11 +4,14 @@ import type {
   Alert,
   StaleResponse,
   KillResponse,
+  BatchKillResponse,
   CleanupResponse,
   HealthResponse,
   ContainersResponse,
-  WsMessage
+  WsMessage,
+  ProcessInfo
 } from '$lib/types';
+import { updateCpuHistory, allProcesses } from './processState';
 
 // Connection state
 export const connected = writable(false);
@@ -193,11 +196,11 @@ export function reconnect(): void {
 const API_BASE = '/api/v1';
 
 // API calls
-export async function killProcess(pid: number): Promise<KillResponse> {
+export async function killProcess(pid: number, signal?: string): Promise<KillResponse> {
   const res = await fetch(`${API_BASE}/actions/kill`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pid })
+    body: JSON.stringify({ pid, signal })
   });
 
   if (!res.ok) {
@@ -206,6 +209,21 @@ export async function killProcess(pid: number): Promise<KillResponse> {
   }
 
   return res.json() as Promise<KillResponse>;
+}
+
+export async function batchKillProcesses(pids: number[], signal?: string): Promise<BatchKillResponse> {
+  const res = await fetch(`${API_BASE}/actions/kill-batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pids, signal })
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || 'Failed to batch kill processes');
+  }
+
+  return res.json() as Promise<BatchKillResponse>;
 }
 
 export async function killStale(maxAgeHours: number = 24, dryRun: boolean = false): Promise<CleanupResponse> {
@@ -290,3 +308,34 @@ export async function restartContainer(containerId: string): Promise<{ success: 
 
   return res.json() as Promise<{ success: boolean; message: string }>;
 }
+
+export { allProcesses };
+
+
+export async function fetchAllProcesses(): Promise<ProcessInfo[]> {
+  const res = await fetch(`${API_BASE}/processes`);
+  if (!res.ok) throw new Error('Failed to fetch processes');
+  const data = await res.json() as ProcessInfo[];
+  allProcesses.set(data);
+  updateCpuHistory(data);
+  return data;
+}
+
+// Polling management
+let processPollingInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startProcessPolling(intervalMs: number = 3000): void {
+  stopProcessPolling();
+  fetchAllProcesses().catch(console.error); // immediate first fetch
+  processPollingInterval = setInterval(() => {
+    fetchAllProcesses().catch(console.error);
+  }, intervalMs);
+}
+
+export function stopProcessPolling(): void {
+  if (processPollingInterval) {
+    clearInterval(processPollingInterval);
+    processPollingInterval = null;
+  }
+}
+

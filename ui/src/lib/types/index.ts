@@ -157,3 +157,31 @@ export interface ContainersResponse {
   containers: Container[];
   runtime: string | null;
 }
+
+// Process management types
+export type ProcessSignal = 'SIGTERM' | 'SIGHUP' | 'SIGINT' | 'SIGQUIT' | 'SIGSTOP' | 'SIGCONT' | 'SIGUSR1' | 'SIGUSR2';
+
+export interface BatchKillRequest {
+  pids: number[];
+  signal?: string;
+}
+
+export interface BatchKillResult {
+  pid: number;
+  success: boolean;
+  message: string;
+}
+
+export interface BatchKillResponse {
+  results: BatchKillResult[];
+  total_attempted: number;
+  total_succeeded: number;
+  total_failed: number;
+}
+
+export interface ColumnDef {
+  key: string;
+  label: string;
+  sortable: boolean;
+  defaultVisible: boolean;
+}

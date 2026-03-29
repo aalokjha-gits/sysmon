@@ -100,11 +100,13 @@ fn parse_signal(sig: &str) -> Result<i32, String> {
         "TERM" | "SIGTERM" | "15" => Ok(15),
         "USR1" | "SIGUSR1" | "10" => Ok(10),
         "USR2" | "SIGUSR2" | "12" => Ok(12),
+        "STOP" | "SIGSTOP" | "17" => Ok(17),
+        "CONT" | "SIGCONT" | "19" => Ok(19),
         "KILL" | "SIGKILL" | "9" => {
             Err("SIGKILL (9) is not allowed for safety. Use SIGTERM (15) instead.".to_string())
         }
         _ => Err(format!(
-            "Unsupported signal: {}. Allowed: TERM, HUP, INT, QUIT, USR1, USR2",
+            "Unsupported signal: {}. Allowed: TERM, HUP, INT, QUIT, USR1, USR2, STOP, CONT",
             sig
         )),
     }
@@ -227,9 +229,53 @@ mod tests {
 
     #[test]
     fn test_parse_signal_unsupported() {
-        let result = parse_signal("STOP");
+        let result = parse_signal("ABRT");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Unsupported signal"));
+    }
+
+    #[test]
+    fn test_parse_signal_stop() {
+        assert_eq!(parse_signal("STOP").unwrap(), 17);
+    }
+
+    #[test]
+    fn test_parse_signal_sigstop() {
+        assert_eq!(parse_signal("SIGSTOP").unwrap(), 17);
+    }
+
+    #[test]
+    fn test_parse_signal_17() {
+        assert_eq!(parse_signal("17").unwrap(), 17);
+    }
+
+    #[test]
+    fn test_parse_signal_stop_case_insensitive() {
+        assert_eq!(parse_signal("stop").unwrap(), 17);
+        assert_eq!(parse_signal("Stop").unwrap(), 17);
+        assert_eq!(parse_signal("sigstop").unwrap(), 17);
+    }
+
+    #[test]
+    fn test_parse_signal_cont() {
+        assert_eq!(parse_signal("CONT").unwrap(), 19);
+    }
+
+    #[test]
+    fn test_parse_signal_sigcont() {
+        assert_eq!(parse_signal("SIGCONT").unwrap(), 19);
+    }
+
+    #[test]
+    fn test_parse_signal_19() {
+        assert_eq!(parse_signal("19").unwrap(), 19);
+    }
+
+    #[test]
+    fn test_parse_signal_cont_case_insensitive() {
+        assert_eq!(parse_signal("cont").unwrap(), 19);
+        assert_eq!(parse_signal("Cont").unwrap(), 19);
+        assert_eq!(parse_signal("sigcont").unwrap(), 19);
     }
 
     #[test]

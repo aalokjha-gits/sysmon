@@ -47,7 +47,144 @@ fn sanitize_command(cmd: &str) -> String {
     result
 }
 
-/// Collect process information from the system
+#[cfg(target_os = "macos")]
+fn parse_etime(s: &str) -> u64 {
+    let s = s.trim();
+    let (days, rest) = if let Some(pos) = s.find('-') {
+        (s[..pos].parse::<u64>().unwrap_or(0), &s[pos + 1..])
+    } else {
+        (0u64, s)
+    };
+    let parts: Vec<&str> = rest.split(':').collect();
+    match parts.len() {
+        2 => {
+            let mins = parts[0].parse::<u64>().unwrap_or(0);
+            let secs = parts[1].parse::<u64>().unwrap_or(0);
+            days * 86400 + mins * 60 + secs
+        }
+        3 => {
+            let hrs = parts[0].parse::<u64>().unwrap_or(0);
+            let mins = parts[1].parse::<u64>().unwrap_or(0);
+            let secs = parts[2].parse::<u64>().unwrap_or(0);
+            days * 86400 + hrs * 3600 + mins * 60 + secs
+        }
+        _ => 0,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn supplement_with_ps(processes: &mut [ProcessInfo], total_memory: u64) {
+    use std::process::Command;
+
+    let output = match Command::new("ps")
+        .args(["-axo", "pid=,pcpu=,rss=,state=,etime=,user="])
+        .output()
+    {
+        Ok(o) if o.status.success() => o,
+        _ => return,
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut ps_data: HashMap<u32, (f32, u64, String, u64, String)> = HashMap::new();
+
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() < 6 {
+            continue;
+        }
+        let Ok(pid) = parts[0].parse::<u32>() else {
+            continue;
+        };
+        let cpu = parts[1].parse::<f32>().unwrap_or(0.0);
+        let rss_kb = parts[2].parse::<u64>().unwrap_or(0);
+        let status = match parts[3].chars().next() {
+            Some('R') => "running",
+            Some('S') | Some('I') => "idle",
+            Some('T') => "stopped",
+            Some('Z') => "zombie",
+            Some('U') => "blocked",
+            _ => "idle",
+        };
+        let elapsed = parse_etime(parts[4]);
+        let user = parts[5].to_string();
+        ps_data.insert(pid, (cpu, rss_kb * 1024, status.to_string(), elapsed, user));
+    }
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    for proc in processes.iter_mut() {
+        if let Some((cpu, mem, status, elapsed, user)) = ps_data.get(&proc.pid) {
+            if proc.memory_bytes == 0 && *mem > 0 {
+                proc.memory_bytes = *mem;
+                proc.memory_percent = if total_memory > 0 {
+                    (*mem as f64 / total_memory as f64) * 100.0
+                } else {
+                    0.0
+                };
+            }
+            if proc.cpu_percent == 0.0 && *cpu > 0.0 {
+                proc.cpu_percent = *cpu;
+            }
+            if proc.status.contains("unknown") {
+                proc.status = status.clone();
+                proc.is_zombie = status == "zombie";
+            }
+            if proc.user == "unknown" && !user.is_empty() {
+                proc.user = user.clone();
+            }
+            if proc.started_at == 0 && *elapsed > 0 {
+                proc.runtime_seconds = *elapsed;
+                proc.started_at = now.saturating_sub(*elapsed);
+            }
+        }
+    }
+}
+
+fn propagate_child_status(processes: &mut [ProcessInfo]) {
+    let mut children_map: HashMap<u32, Vec<usize>> = HashMap::new();
+    let mut pid_to_idx: HashMap<u32, usize> = HashMap::new();
+
+    for (idx, p) in processes.iter().enumerate() {
+        pid_to_idx.insert(p.pid, idx);
+        if let Some(ppid) = p.ppid {
+            children_map.entry(ppid).or_default().push(idx);
+        }
+    }
+
+    fn has_running_descendant(
+        idx: usize,
+        processes: &[ProcessInfo],
+        children_map: &HashMap<u32, Vec<usize>>,
+    ) -> bool {
+        if let Some(children) = children_map.get(&processes[idx].pid) {
+            for &child_idx in children {
+                if processes[child_idx].status == "running" {
+                    return true;
+                }
+                if has_running_descendant(child_idx, processes, children_map) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    let to_promote: Vec<usize> = (0..processes.len())
+        .filter(|&idx| {
+            let status = &processes[idx].status;
+            (status == "idle" || status == "unknown")
+                && has_running_descendant(idx, processes, &children_map)
+        })
+        .collect();
+
+    for idx in to_promote {
+        processes[idx].status = "running".to_string();
+    }
+}
+
 pub fn collect_processes(system: &System, config: &Config) -> Vec<ProcessInfo> {
     let current_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -56,8 +193,7 @@ pub fn collect_processes(system: &System, config: &Config) -> Vec<ProcessInfo> {
 
     let total_memory = system.total_memory();
 
-    // First pass: collect all processes
-    let processes: Vec<ProcessInfo> = system
+    let mut processes: Vec<ProcessInfo> = system
         .processes()
         .iter()
         .map(|(pid, process)| {
@@ -73,12 +209,11 @@ pub fn collect_processes(system: &System, config: &Config) -> Vec<ProcessInfo> {
 
             let status = match process.status() {
                 ProcessStatus::Run => "running".to_string(),
-                ProcessStatus::Sleep => "sleeping".to_string(),
-                ProcessStatus::Idle => "idle".to_string(),
+                ProcessStatus::Sleep | ProcessStatus::Idle => "idle".to_string(),
                 ProcessStatus::Zombie => "zombie".to_string(),
                 ProcessStatus::Stop => "stopped".to_string(),
                 ProcessStatus::Dead => "dead".to_string(),
-                _ => format!("{:?}", process.status()).to_lowercase(),
+                _ => "idle".to_string(),
             };
             let is_zombie = process.status() == ProcessStatus::Zombie;
             let started_at = process.start_time();
@@ -120,10 +255,13 @@ pub fn collect_processes(system: &System, config: &Config) -> Vec<ProcessInfo> {
         })
         .collect();
 
-    // Second pass: detect stale processes
+    #[cfg(target_os = "macos")]
+    supplement_with_ps(&mut processes, total_memory);
+
+    propagate_child_status(&mut processes);
+
     let stale_pids = detect_stale_pids(&processes, config);
 
-    // Update stale flag
     processes
         .into_iter()
         .map(|mut p| {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::process::Command;
 use tracing::{info, warn};
 
-const MAX_BATCH_KILL: u32 = 50;
+const MAX_BATCH_KILL: u32 = 500;
 
 /// Cleanup stale and zombie processes
 pub async fn cleanup_processes(

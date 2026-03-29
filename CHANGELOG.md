@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-29
+
+### Added
+
+- **Pause/Freeze toggle** — freeze the process table to inspect, sort, and interact without data refreshing
+- **Stable sort** — PID tiebreaker eliminates row jitter between equal-value processes on refresh
+- **Multi-select & batch actions** — checkbox column with select-all, floating action bar for batch kill/signal
+- **Signal picker** — send SIGTERM, SIGHUP, SIGINT, SIGQUIT, SIGSTOP, SIGCONT, SIGUSR1/2 to processes
+- **Batch kill endpoint** — `POST /api/v1/actions/kill-batch` for killing multiple PIDs in one request
+- **Pin processes** — pin specific processes to the top of the table for monitoring
+- **Per-process CPU sparklines** — inline SVG charts showing CPU usage history (last 30 samples)
+- **Process detail drawer** — double-click any process row for full details (command, user, CPU/memory bars, sparkline)
+- **Column picker** — show/hide table columns (PID, Name, CPU, Memory, Status, Age, User, Command)
+- **Threshold highlighting** — rows glow red/purple when CPU/memory exceed configurable thresholds
+- **Hierarchical process tree** — collapsible parent-child tree view with expand/collapse all
+- **Process filter buttons** — filter by All, Active, Idle, Stale, Zombie
+- **Status propagation** — parent processes show "running" when any descendant is running (Activity Monitor style)
+
+### Fixed
+
+- Process status now propagates from children to parents in tree view
+- Resolved "unknown" user for root-owned processes on macOS via ps supplement
+- Fixed circular import between metrics and processState stores causing runtime crash
+- SIGSTOP and SIGCONT signals now supported in kill operations
+- Process data supplemented with macOS `ps` for accurate CPU/memory/status/user across all processes
+
 ## [0.1.0] - 2025-03-29
 
 ### Added
@@ -32,4 +58,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Protected process list (prevents killing system-critical processes)
 - Command-line argument sanitization (redacts passwords, tokens, API keys)
 
+[0.2.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.2.0
 [0.1.0]: https://github.com/aalokjha-gits/sysmon/releases/tag/v0.1.0

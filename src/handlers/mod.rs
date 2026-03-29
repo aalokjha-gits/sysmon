@@ -14,7 +14,7 @@ mod health;
 mod metrics;
 mod processes;
 
-pub use actions::{cleanup_handler, kill_handler, kill_stale_handler};
+pub use actions::{batch_kill_handler, cleanup_handler, kill_handler, kill_stale_handler};
 pub use containers::containers_handler;
 pub use health::health_handler;
 pub use metrics::{cpu_metrics_handler, memory_metrics_handler, system_metrics_handler};
@@ -44,6 +44,7 @@ pub fn create_api_router() -> Router<AppState> {
         .route("/processes/stale", get(stale_processes_handler))
         // Actions
         .route("/actions/kill", post(kill_handler))
+        .route("/actions/kill-batch", post(batch_kill_handler))
         .route("/actions/kill-stale", post(kill_stale_handler))
         .route("/actions/cleanup", post(cleanup_handler))
 }

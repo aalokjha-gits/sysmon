@@ -1,6 +1,9 @@
 use crate::actions::{cleanup_processes, kill_process};
 use crate::handlers::AppState;
-use crate::models::{CleanupRequest, CleanupResponse, KillRequest, KillResponse, KillStaleRequest};
+use crate::models::{
+    BatchKillRequest, BatchKillResponse, BatchKillResult, CleanupRequest, CleanupResponse,
+    KillRequest, KillResponse, KillStaleRequest,
+};
 use axum::http::StatusCode;
 use axum::{extract::State, Json};
 
@@ -42,6 +45,43 @@ pub async fn kill_stale_handler(
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
+}
+
+pub async fn batch_kill_handler(
+    State(state): State<AppState>,
+    Json(request): Json<BatchKillRequest>,
+) -> Result<Json<BatchKillResponse>, StatusCode> {
+    let mut results = Vec::with_capacity(request.pids.len());
+    let mut succeeded: u32 = 0;
+    let mut failed: u32 = 0;
+
+    for &pid in &request.pids {
+        match kill_process(pid, request.signal.clone(), &state.config).await {
+            Ok(message) => {
+                succeeded += 1;
+                results.push(BatchKillResult {
+                    pid,
+                    success: true,
+                    message,
+                });
+            }
+            Err(e) => {
+                failed += 1;
+                results.push(BatchKillResult {
+                    pid,
+                    success: false,
+                    message: e.to_string(),
+                });
+            }
+        }
+    }
+
+    Ok(Json(BatchKillResponse {
+        total_attempted: results.len() as u32,
+        total_succeeded: succeeded,
+        total_failed: failed,
+        results,
+    }))
 }
 
 /// Full cleanup (zombies + optional stale)

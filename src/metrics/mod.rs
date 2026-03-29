@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::models::{Alert, SystemInfo, SystemMetrics};
+use crate::models::{Alert, ProcessInfo, SystemInfo, SystemMetrics};
 use crate::ws::WebSocketState;
 use chrono::Utc;
 use std::sync::Arc;
@@ -30,6 +30,8 @@ pub struct MetricsCollector {
     alert_history: Arc<RwLock<Vec<Alert>>>,
     consecutive_high_cpu: Arc<RwLock<usize>>,
     consecutive_high_memory: Arc<RwLock<usize>>,
+    /// Cached full process list from last collect() cycle — used by REST API
+    cached_all_processes: Arc<RwLock<Vec<ProcessInfo>>>,
 }
 
 impl MetricsCollector {
@@ -47,6 +49,7 @@ impl MetricsCollector {
             alert_history: Arc::new(RwLock::new(Vec::new())),
             consecutive_high_cpu: Arc::new(RwLock::new(0)),
             consecutive_high_memory: Arc::new(RwLock::new(0)),
+            cached_all_processes: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
@@ -81,6 +84,8 @@ impl MetricsCollector {
         // These don't need the system lock - they create their own instances
         let network = collect_network_metrics();
         let disk = collect_disk_metrics();
+
+        *self.cached_all_processes.write().await = processes.clone();
 
         // Get top processes (top 20 by CPU) - use partial sort for efficiency
         let mut top_processes = processes.clone();
@@ -291,10 +296,8 @@ impl MetricsCollector {
         self.system.read().await
     }
 
-    /// Get processes without collecting all metrics
-    pub async fn get_processes(&self) -> Vec<crate::models::ProcessInfo> {
-        let system = self.system.read().await;
-        process::collect_processes(&system, &self.config)
+    pub async fn get_processes(&self) -> Vec<ProcessInfo> {
+        self.cached_all_processes.read().await.clone()
     }
 }
 

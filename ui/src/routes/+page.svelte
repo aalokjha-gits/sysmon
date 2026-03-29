@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { connect, disconnect, fetchHealth, connected, metrics, alerts } from '$lib/stores/metrics';
+  import { connect, disconnect, fetchHealth, connected, metrics, alerts, startProcessPolling, stopProcessPolling } from '$lib/stores/metrics';
   import Header from '$lib/components/Header.svelte';
   import MetricPill from '$lib/components/MetricPill.svelte';
   import AlertsCompact from '$lib/components/AlertsCompact.svelte';
@@ -26,6 +26,7 @@
 
   onMount(() => {
     connect();
+    startProcessPolling();
     fetchHealth().catch(console.error);
 
     healthCheckInterval = setInterval(() => {
@@ -36,6 +37,7 @@
   });
 
   onDestroy(() => {
+    stopProcessPolling();
     disconnect();
     clearInterval(healthCheckInterval);
   });

@@ -260,6 +260,30 @@ pub struct StaleResponse {
     pub zombie_count: usize,
 }
 
+/// Batch kill request — send a signal to multiple PIDs at once
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BatchKillRequest {
+    pub pids: Vec<u32>,
+    pub signal: Option<String>,
+}
+
+/// Result of killing a single process within a batch operation
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BatchKillResult {
+    pub pid: u32,
+    pub success: bool,
+    pub message: String,
+}
+
+/// Batch kill response with per-PID results and summary counts
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BatchKillResponse {
+    pub results: Vec<BatchKillResult>,
+    pub total_attempted: u32,
+    pub total_succeeded: u32,
+    pub total_failed: u32,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -681,5 +705,75 @@ mod tests {
         let deser: StaleResponse = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(deser.stale_count, 0);
         assert!(deser.processes.is_empty());
+    }
+
+    #[test]
+    fn test_batch_kill_request_deserialize() {
+        let json = r#"{"pids": [1, 2, 3], "signal": "TERM"}"#;
+        let req: BatchKillRequest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(req.pids, vec![1, 2, 3]);
+        assert_eq!(req.signal, Some("TERM".to_string()));
+    }
+
+    #[test]
+    fn test_batch_kill_request_deserialize_no_signal() {
+        let json = r#"{"pids": [42]}"#;
+        let req: BatchKillRequest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(req.pids, vec![42]);
+        assert!(req.signal.is_none());
+    }
+
+    #[test]
+    fn test_batch_kill_result_serde_roundtrip() {
+        let result = BatchKillResult {
+            pid: 123,
+            success: true,
+            message: "ok".to_string(),
+        };
+        let json = serde_json::to_string(&result).expect("serialize");
+        let deser: BatchKillResult = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.pid, 123);
+        assert!(deser.success);
+    }
+
+    #[test]
+    fn test_batch_kill_response_serde_roundtrip() {
+        let resp = BatchKillResponse {
+            results: vec![
+                BatchKillResult {
+                    pid: 10,
+                    success: true,
+                    message: "sent".to_string(),
+                },
+                BatchKillResult {
+                    pid: 20,
+                    success: false,
+                    message: "denied".to_string(),
+                },
+            ],
+            total_attempted: 2,
+            total_succeeded: 1,
+            total_failed: 1,
+        };
+        let json = serde_json::to_string(&resp).expect("serialize");
+        let deser: BatchKillResponse = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.total_attempted, 2);
+        assert_eq!(deser.total_succeeded, 1);
+        assert_eq!(deser.total_failed, 1);
+        assert_eq!(deser.results.len(), 2);
+    }
+
+    #[test]
+    fn test_batch_kill_response_empty() {
+        let resp = BatchKillResponse {
+            results: vec![],
+            total_attempted: 0,
+            total_succeeded: 0,
+            total_failed: 0,
+        };
+        let json = serde_json::to_string(&resp).expect("serialize");
+        let deser: BatchKillResponse = serde_json::from_str(&json).expect("deserialize");
+        assert!(deser.results.is_empty());
+        assert_eq!(deser.total_attempted, 0);
     }
 }
