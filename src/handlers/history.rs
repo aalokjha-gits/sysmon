@@ -11,7 +11,10 @@ pub async fn history_handler(
     State(state): State<AppState>,
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<HistoryResponse>, StatusCode> {
-    let db = state.database.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let db = state
+        .database
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     let range_seconds: u64 = match query.range.as_deref() {
         Some("1h") => 3600,

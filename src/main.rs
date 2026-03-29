@@ -114,7 +114,10 @@ async fn main() -> Result<()> {
             Some(Arc::new(db))
         }
         Err(e) => {
-            warn!("Failed to initialize metrics database: {} — history will be unavailable", e);
+            warn!(
+                "Failed to initialize metrics database: {} — history will be unavailable",
+                e
+            );
             None
         }
     };
@@ -127,7 +130,13 @@ async fn main() -> Result<()> {
         .clone()
         .start_collection_task(ws_state.clone(), database.clone());
 
-    let (app, port) = create_server(config.clone(), ws_state.clone(), metrics_collector, database).await?;
+    let (app, port) = create_server(
+        config.clone(),
+        ws_state.clone(),
+        metrics_collector,
+        database,
+    )
+    .await?;
 
     let url = format!("http://127.0.0.1:{}", port);
 
