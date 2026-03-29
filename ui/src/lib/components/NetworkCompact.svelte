@@ -64,6 +64,7 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px 10px;
+    overflow: hidden;
   }
 
   .compact-panel-title {
@@ -93,6 +94,7 @@
     gap: 8px;
     font-size: var(--font-xs);
     padding: 2px 0;
+    overflow: hidden;
   }
 
   .interface-row.skeleton {
@@ -109,7 +111,9 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    flex-shrink: 1;
+    overflow: hidden;
   }
 
   .traffic-arrow {
@@ -127,8 +131,9 @@
 
   .iface-packets {
     color: var(--text-muted);
-    min-width: 70px;
+    min-width: auto;
     text-align: right;
+    white-space: nowrap;
   }
 
   .mono {

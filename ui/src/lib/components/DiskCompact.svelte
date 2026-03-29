@@ -57,6 +57,7 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px 10px;
+    overflow: hidden;
   }
 
   .compact-panel-title {
@@ -86,6 +87,7 @@
     gap: 8px;
     font-size: var(--font-xs);
     padding: 3px 0;
+    overflow: hidden;
   }
 
   .disk-row.skeleton {

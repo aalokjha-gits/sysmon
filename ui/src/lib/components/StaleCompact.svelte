@@ -223,6 +223,7 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 6px 10px;
+    overflow: hidden;
   }
 
   .stale-bar {
@@ -330,6 +331,7 @@
     gap: 8px;
     font-size: var(--font-xs);
     padding: 2px 0;
+    overflow: hidden;
   }
 
   .pid {

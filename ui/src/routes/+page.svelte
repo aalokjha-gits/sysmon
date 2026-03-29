@@ -112,14 +112,16 @@
     flex-direction: column;
     overflow: hidden;
     border-right: 1px solid var(--border-color);
+    min-width: 0;
   }
 
   .right-column {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: 6px;
+    padding: 8px 10px;
     gap: 6px;
+    min-width: 0;
   }
 
   /* Responsive adjustments */

@@ -36,6 +36,7 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px 10px;
+    overflow: hidden;
   }
 
   .compact-panel-title {
