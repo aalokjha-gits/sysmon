@@ -30,7 +30,10 @@
 - **Single Binary** — Everything embedded, no external dependencies
 - **Sidebar + Workspace UI** — Navigate between Overview, Processes, Network, Containers, and Alerts views with keyboard shortcuts (1-5)
 - **Lightweight** — Minimal resource footprint, written in Rust
-- **Real-time Metrics** — CPU, memory, disk, network, port, and process monitoring via WebSocket with rolling timeseries charts
+- **Real-time Metrics** — CPU, memory, disk, network, port, temperature, GPU, and process monitoring via WebSocket with rolling timeseries charts
+- **Temperature Monitoring** — Real-time thermal sensor data with color-coded bars and threshold alerts
+- **GPU Monitoring** — GPU name, VRAM usage, utilization, temperature, and power draw (NVIDIA, AMD, Apple Silicon)
+- **Historical Data** — SQLite-backed metrics persistence with 7-day retention and configurable history API
 - **Process Tree** — Hierarchical parent-child process view with expand/collapse, search, filters (Active/Idle/Stale/Zombie), multi-select batch kill, signal picker, per-process CPU sparklines, and detail drawer
 - **Port Monitoring** — Detect all listening TCP/UDP ports with process ownership, service identification, and external exposure warnings
 - **Container Monitoring** — Docker and Podman container stats
@@ -225,6 +228,9 @@ sysmon exposes a REST + WebSocket API:
 | `GET` | `/api/v1/processes` | Process list (supports `sort_by`, `limit`, `filter`) |
 | `GET` | `/api/v1/processes/stale` | Stale processes |
 | `GET` | `/api/v1/ports` | Listening TCP/UDP ports |
+| `GET` | `/api/v1/temperature` | Temperature sensor data |
+| `GET` | `/api/v1/gpu` | GPU metrics |
+| `GET` | `/api/v1/history` | Historical metrics (query: `range`, `metric`) |
 | `POST` | `/api/v1/actions/kill` | Kill a process |
 | `POST` | `/api/v1/actions/kill-batch` | Batch kill multiple processes |
 | `POST` | `/api/v1/actions/kill-stale` | Kill stale processes |
@@ -287,9 +293,9 @@ make lint       # Run clippy + svelte-check
 ## Roadmap
 
 - [x] Linux support
-- [ ] GPU monitoring
-- [ ] Temperature monitoring
-- [ ] Historical data persistence
+- [x] GPU monitoring
+- [x] Temperature monitoring
+- [x] Historical data persistence
 - [ ] Alerts and notifications (desktop/email)
 - [ ] Plugin system
 
@@ -303,3 +309,4 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 - [Axum](https://github.com/tokio-rs/axum) — Web framework
 - [Svelte](https://svelte.dev) — Frontend framework
 - [rust-embed](https://github.com/pyrossh/rust-embed) — Static file embedding
+- [rusqlite](https://github.com/rusqlite/rusqlite) — SQLite bindings for Rust

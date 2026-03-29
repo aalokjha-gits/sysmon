@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { connect, disconnect, fetchHealth, connected, metrics, startProcessPolling, stopProcessPolling } from '$lib/stores/metrics';
+  import { connect, disconnect, fetchHealth, connected, metrics, temperatureMetrics, gpuMetrics, startProcessPolling, stopProcessPolling } from '$lib/stores/metrics';
   import { startMetricsHistory, stopMetricsHistory } from '$lib/stores/metricsHistory';
   import { activeView } from '$lib/stores/navigation';
   import Header from '$lib/components/Header.svelte';
@@ -23,6 +23,9 @@
   const diskPercent = $derived($metrics?.disk.disks[0]?.used_percent ?? 0);
   const containerCount = $derived($metrics?.system?.container_count ?? 0);
   const portCount = $derived($metrics?.ports?.length ?? 0);
+  const tempSensors = $derived($temperatureMetrics?.sensors?.filter(s => s.temperature_celsius !== null) ?? []);
+  const avgTemp = $derived(tempSensors.length > 0 ? tempSensors.reduce((sum, s) => sum + (s.temperature_celsius ?? 0), 0) / tempSensors.length : 0);
+  const gpuUtil = $derived($gpuMetrics?.gpus[0]?.utilization_percent ?? 0);
 
   onMount(() => {
     connect();
@@ -54,6 +57,8 @@
     <MetricPill label="LOAD" value={loadAvg1m} color="load" />
     <MetricPill label="NET" value={netRx} icon="↓" extra={netTx} extraIcon="↑" color="net" />
     <MetricPill label="DISK" value={diskPercent} unit="%" color="disk" />
+    <MetricPill label="TEMP" value={avgTemp} unit="°C" color="default" />
+    <MetricPill label="GPU" value={gpuUtil} unit="%" color="default" />
     <MetricPill label="PORTS" value={portCount} color="default" />
     <MetricPill label="●" value={containerCount} color="default" />
   </div>

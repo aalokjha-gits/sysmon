@@ -17,22 +17,23 @@ use tower_http::{
 use tracing::{info, Span};
 
 use crate::config::Config;
+use crate::db::Database;
 use crate::embedded::serve_embedded_file;
 use crate::handlers::{create_api_router, AppState};
 use crate::metrics::MetricsCollector;
 use crate::ws::{ws_handler, WebSocketState};
 
-/// Create and configure the Axum application
 pub async fn create_server(
     config: Arc<Config>,
     ws_state: WebSocketState,
     metrics_collector: Arc<MetricsCollector>,
+    database: Option<Arc<Database>>,
 ) -> anyhow::Result<(Router, u16)> {
-    // Create app state
     let app_state = AppState {
         config: config.clone(),
         ws_state: ws_state.clone(),
         metrics_collector,
+        database,
     };
 
     // Configure CORS - restrictive, localhost only

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::db::Database;
 use crate::models::{Alert, ProcessInfo, SystemInfo, SystemMetrics};
 use crate::ws::WebSocketState;
 use chrono::Utc;
@@ -12,17 +13,21 @@ use tracing::{debug, error, info};
 pub mod container;
 mod cpu;
 pub mod disk;
+pub mod gpu;
 mod memory;
 pub mod network;
 pub mod ports;
 pub mod process;
+pub mod temperature;
 
 pub use cpu::collect_cpu_metrics;
 pub use disk::collect_disk_metrics;
+pub use gpu::collect_gpu_metrics;
 pub use memory::collect_memory_metrics;
 pub use network::collect_network_metrics;
 pub use ports::collect_listening_ports;
 pub use process::collect_processes;
+pub use temperature::collect_temperature_metrics;
 
 /// Metrics collector that owns the sysinfo System instance
 pub struct MetricsCollector {
@@ -86,6 +91,8 @@ impl MetricsCollector {
         let network = collect_network_metrics();
         let disk = collect_disk_metrics();
         let ports = collect_listening_ports();
+        let temperature = collect_temperature_metrics();
+        let gpu = collect_gpu_metrics();
 
         *self.cached_all_processes.write().await = processes.clone();
 
@@ -124,6 +131,8 @@ impl MetricsCollector {
             network,
             disk,
             ports,
+            temperature,
+            gpu,
             timestamp: Utc::now(),
         })
     }
@@ -132,8 +141,14 @@ impl MetricsCollector {
     pub fn start_collection_task(
         self: Arc<Self>,
         ws_state: WebSocketState,
+        database: Option<Arc<Database>>,
     ) -> tokio::task::JoinHandle<()> {
         let interval_ms = self.config.interval_ms;
+        let mut prune_counter: u64 = 0;
+        // Prune every ~5 minutes (300s / 2s interval = 150 ticks)
+        let prune_every: u64 = 150;
+        // Keep 7 days of raw data
+        let max_age_seconds: i64 = 7 * 24 * 3600;
 
         tokio::spawn(async move {
             let mut ticker = interval(Duration::from_millis(interval_ms));
@@ -153,6 +168,17 @@ impl MetricsCollector {
                             "Collected metrics: CPU {:.1}%, Memory {:.1}%",
                             metrics.cpu.overall_percent, metrics.memory.used_percent
                         );
+
+                        if let Some(ref db) = database {
+                            db.insert_metrics(&metrics);
+
+                            prune_counter += 1;
+                            if prune_counter >= prune_every {
+                                prune_counter = 0;
+                                db.prune_old_data(max_age_seconds);
+                            }
+                        }
+
                         ws_state.broadcast_metrics(metrics);
                     }
                     Err(e) => {

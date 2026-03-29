@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-29
+
+### Added
+
+- **Temperature monitoring** — Real-time thermal sensor data via sysinfo Components API (macOS SMC/IOKit, Linux hwmon/thermal_zone)
+- **GPU monitoring** — GPU name, vendor, VRAM usage, utilization, temperature, and power draw (macOS via `system_profiler`, Linux via `nvidia-smi` and sysfs DRM)
+- **Historical data persistence** — SQLite-backed metrics storage with WAL mode, 7-day retention, and automatic pruning
+- **History API** — `GET /api/v1/history?range=1h|6h|24h|7d|30d&metric=cpu|memory|temperature|gpu|load_1m|load_5m|load_15m` for querying historical data with automatic downsampling
+- **Temperature timeseries chart** — Amber-colored rolling line chart on Overview dashboard
+- **GPU timeseries chart** — Violet-colored rolling line chart on Overview dashboard
+- **Temperature compact panel** — Sensor list with color-coded bars (green < 60°C, yellow 60-80°C, red > 80°C) showing max/critical thresholds
+- **GPU compact panel** — GPU info display with VRAM usage bar, utilization percentage, temperature, and power metrics
+- **TEMP and GPU metric pills** — Average temperature and GPU utilization displayed in the top metric bar
+- **New API endpoints** — `GET /api/v1/temperature`, `GET /api/v1/gpu`, `GET /api/v1/history`
+- 177 Rust tests (up from 151), 14 Svelte tests
+
+### Dependencies
+
+- Added `rusqlite` 0.32 (with bundled SQLite) for historical data storage
+- Added `directories` 6 for platform-appropriate data directory paths
+
 ## [0.5.0] - 2026-03-29
 
 ### Added

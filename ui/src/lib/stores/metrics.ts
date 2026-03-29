@@ -9,7 +9,8 @@ import type {
   HealthResponse,
   ContainersResponse,
   WsMessage,
-  ProcessInfo
+  ProcessInfo,
+  HistoryResponse
 } from '$lib/types';
 import { updateCpuHistory, allProcesses } from './processState';
 
@@ -35,6 +36,8 @@ export const systemInfo = derived(metrics, $m => $m?.system ?? null);
 export const networkMetrics = derived(metrics, $m => $m?.network ?? null);
 export const diskMetrics = derived(metrics, $m => $m?.disk ?? null);
 export const portMetrics = derived(metrics, $m => $m?.ports ?? []);
+export const temperatureMetrics = derived(metrics, $m => $m?.temperature ?? null);
+export const gpuMetrics = derived(metrics, $m => $m?.gpu ?? null);
 
 // Critical/warning alerts count
 export const criticalAlertsCount = derived(alerts, $a =>
@@ -311,6 +314,15 @@ export async function restartContainer(containerId: string): Promise<{ success: 
 }
 
 export { allProcesses };
+
+export async function fetchHistory(metric: string, range: string): Promise<HistoryResponse> {
+  const res = await fetch(`${API_BASE}/history?metric=${encodeURIComponent(metric)}&range=${encodeURIComponent(range)}`);
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || 'Failed to fetch history');
+  }
+  return res.json() as Promise<HistoryResponse>;
+}
 
 
 export async function fetchAllProcesses(): Promise<ProcessInfo[]> {

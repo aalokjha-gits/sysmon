@@ -10,6 +10,8 @@ const MAX_POINTS = 150;
 
 export const cpuHistory = writable<TimeSeriesPoint[]>([]);
 export const memoryHistory = writable<TimeSeriesPoint[]>([]);
+export const temperatureHistory = writable<TimeSeriesPoint[]>([]);
+export const gpuHistory = writable<TimeSeriesPoint[]>([]);
 export const coreHistory = writable<Map<number, TimeSeriesPoint[]>>(new Map());
 
 function appendPoint(store: typeof cpuHistory, value: number): void {
@@ -42,6 +44,20 @@ export function startMetricsHistory(): void {
     appendPoint(memoryHistory, $m.memory.used_percent);
     if ($m.cpu.cores?.length > 0) {
       appendCorePoints($m.cpu.cores);
+    }
+
+    // Temperature: average of all sensor readings
+    const temps = $m.temperature?.sensors
+      ?.map(s => s.temperature_celsius)
+      .filter((t): t is number => t != null) ?? [];
+    if (temps.length > 0) {
+      appendPoint(temperatureHistory, temps.reduce((a, b) => a + b, 0) / temps.length);
+    }
+
+    // GPU: utilization of first GPU
+    const gpuUtil = $m.gpu?.gpus?.[0]?.utilization_percent;
+    if (gpuUtil != null) {
+      appendPoint(gpuHistory, gpuUtil);
     }
   });
 }

@@ -8,7 +8,46 @@ export interface SystemMetrics {
   network: NetworkMetrics;
   disk: DiskMetrics;
   ports: PortInfo[];
+  temperature: TemperatureMetrics;
+  gpu: GpuMetrics;
   timestamp: string;
+}
+
+export interface TemperatureMetrics {
+  sensors: TemperatureSensor[];
+}
+
+export interface TemperatureSensor {
+  label: string;
+  temperature_celsius: number | null;
+  max_celsius: number | null;
+  critical_celsius: number | null;
+}
+
+export interface GpuMetrics {
+  gpus: GpuInfo[];
+}
+
+export interface GpuInfo {
+  name: string;
+  vendor: string;
+  vram_total_bytes: number | null;
+  vram_used_bytes: number | null;
+  utilization_percent: number | null;
+  temperature_celsius: number | null;
+  power_watts: number | null;
+}
+
+export interface HistoryPoint {
+  timestamp: number;
+  value: number;
+}
+
+export interface HistoryResponse {
+  points: HistoryPoint[];
+  range_seconds: number;
+  metric: string;
+  point_count: number;
 }
 
 export interface PortInfo {

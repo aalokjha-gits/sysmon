@@ -2,10 +2,12 @@
   import CpuCoresChart from '$lib/components/CpuCoresChart.svelte';
   import LoadCompact from '$lib/components/LoadCompact.svelte';
   import DiskCompact from '$lib/components/DiskCompact.svelte';
+  import TemperatureCompact from '$lib/components/TemperatureCompact.svelte';
+  import GpuCompact from '$lib/components/GpuCompact.svelte';
   import AlertsCompact from '$lib/components/AlertsCompact.svelte';
   import TimeSeriesChart from '$lib/components/TimeSeriesChart.svelte';
-  import { metrics, serverPort, serverUptime, networkMetrics, portMetrics } from '$lib/stores/metrics';
-  import { cpuHistory, memoryHistory, coreHistory } from '$lib/stores/metricsHistory';
+  import { metrics, serverPort, serverUptime, networkMetrics, portMetrics, temperatureMetrics, gpuMetrics } from '$lib/stores/metrics';
+  import { cpuHistory, memoryHistory, coreHistory, temperatureHistory, gpuHistory } from '$lib/stores/metricsHistory';
   import { setView } from '$lib/stores/navigation';
   import { formatUptime } from '$lib/utils/format';
 
@@ -58,6 +60,15 @@
     </div>
   </div>
 
+  <div class="charts-row">
+    <div class="chart-card">
+      <TimeSeriesChart data={$temperatureHistory} label="Temp" unit="°C" color="#f59e0b" />
+    </div>
+    <div class="chart-card">
+      <TimeSeriesChart data={$gpuHistory} label="GPU" unit="%" color="#8b5cf6" />
+    </div>
+  </div>
+
   <div class="chart-card cores-chart">
     <CpuCoresChart coreData={$coreHistory} />
   </div>
@@ -68,6 +79,15 @@
     </div>
     <div class="card">
       <DiskCompact />
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="card">
+      <TemperatureCompact />
+    </div>
+    <div class="card">
+      <GpuCompact />
     </div>
   </div>
 

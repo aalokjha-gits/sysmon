@@ -101,6 +101,29 @@ function createMockMetrics(): SystemMetrics {
         service: 'sysmon'
       }
     ],
+    temperature: {
+      sensors: [
+        {
+          label: 'CPU die temperature',
+          temperature_celsius: 52.3,
+          max_celsius: 95.0,
+          critical_celsius: 105.0
+        }
+      ]
+    },
+    gpu: {
+      gpus: [
+        {
+          name: 'Apple M1 Pro',
+          vendor: 'Apple',
+          vram_total_bytes: 17179869184,
+          vram_used_bytes: 8589934592,
+          utilization_percent: null,
+          temperature_celsius: null,
+          power_watts: null
+        }
+      ]
+    },
     timestamp: '2024-01-01T00:00:00Z'
   };
 }

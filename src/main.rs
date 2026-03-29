@@ -7,6 +7,7 @@ use tracing_subscriber::FmtSubscriber;
 
 mod actions;
 mod config;
+pub mod db;
 mod embedded;
 mod handlers;
 mod metrics;
@@ -107,15 +108,26 @@ async fn main() -> Result<()> {
 
     info!("Starting sysmon v{}", env!("CARGO_PKG_VERSION"));
 
+    let database = match db::Database::new() {
+        Ok(db) => {
+            info!("Metrics database initialized");
+            Some(Arc::new(db))
+        }
+        Err(e) => {
+            warn!("Failed to initialize metrics database: {} — history will be unavailable", e);
+            None
+        }
+    };
+
     let ws_state = WebSocketState::new();
 
     let metrics_collector = Arc::new(MetricsCollector::new(config.clone()));
 
     let _collection_task = metrics_collector
         .clone()
-        .start_collection_task(ws_state.clone());
+        .start_collection_task(ws_state.clone(), database.clone());
 
-    let (app, port) = create_server(config.clone(), ws_state.clone(), metrics_collector).await?;
+    let (app, port) = create_server(config.clone(), ws_state.clone(), metrics_collector, database).await?;
 
     let url = format!("http://127.0.0.1:{}", port);
 

@@ -1,6 +1,6 @@
 [package]
 name = "sysmon"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 description = "Lightweight system monitoring dashboard"
 license = "MIT"
@@ -25,6 +25,8 @@ uuid = { version = "1", features = ["v4"] }
 futures-util = "0.3"
 tokio-stream = "0.1"
 webbrowser = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+directories = "6"
 
 [profile.release]
 opt-level = 3

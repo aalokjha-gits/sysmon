@@ -13,6 +13,8 @@ pub struct SystemMetrics {
     pub network: NetworkMetrics,
     pub disk: DiskMetrics,
     pub ports: Vec<PortInfo>,
+    pub temperature: TemperatureMetrics,
+    pub gpu: GpuMetrics,
     pub timestamp: DateTime<Utc>,
 }
 
@@ -63,6 +65,62 @@ pub struct PortInfo {
     pub user: String,
     pub is_external: bool,
     pub service: Option<String>,
+}
+
+/// Temperature metrics from system sensors
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TemperatureMetrics {
+    pub sensors: Vec<TemperatureSensor>,
+}
+
+/// Individual temperature sensor reading
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TemperatureSensor {
+    pub label: String,
+    pub temperature_celsius: Option<f32>,
+    pub max_celsius: Option<f32>,
+    pub critical_celsius: Option<f32>,
+}
+
+/// GPU metrics
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GpuMetrics {
+    pub gpus: Vec<GpuInfo>,
+}
+
+/// Individual GPU information
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GpuInfo {
+    pub name: String,
+    pub vendor: String,
+    pub vram_total_bytes: Option<u64>,
+    pub vram_used_bytes: Option<u64>,
+    pub utilization_percent: Option<f32>,
+    pub temperature_celsius: Option<f32>,
+    pub power_watts: Option<f32>,
+}
+
+/// Historical metrics query parameters
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct HistoryQuery {
+    pub range: Option<String>,
+    pub metric: Option<String>,
+}
+
+/// Historical metrics response
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct HistoryResponse {
+    pub points: Vec<HistoryPoint>,
+    pub range_seconds: u64,
+    pub metric: String,
+    pub point_count: usize,
+}
+
+/// Single historical data point
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct HistoryPoint {
+    pub timestamp: i64,
+    pub value: f64,
 }
 
 /// CPU metrics
@@ -413,6 +471,31 @@ mod tests {
         }
     }
 
+    fn sample_temperature_metrics() -> TemperatureMetrics {
+        TemperatureMetrics {
+            sensors: vec![TemperatureSensor {
+                label: "CPU".to_string(),
+                temperature_celsius: Some(55.0),
+                max_celsius: Some(100.0),
+                critical_celsius: Some(105.0),
+            }],
+        }
+    }
+
+    fn sample_gpu_metrics() -> GpuMetrics {
+        GpuMetrics {
+            gpus: vec![GpuInfo {
+                name: "Test GPU".to_string(),
+                vendor: "TestVendor".to_string(),
+                vram_total_bytes: Some(8_000_000_000),
+                vram_used_bytes: Some(2_000_000_000),
+                utilization_percent: Some(45.0),
+                temperature_celsius: Some(65.0),
+                power_watts: Some(150.0),
+            }],
+        }
+    }
+
     fn sample_system_metrics() -> SystemMetrics {
         SystemMetrics {
             cpu: sample_cpu_metrics(),
@@ -424,6 +507,8 @@ mod tests {
             network: sample_network_metrics(),
             disk: sample_disk_metrics(),
             ports: vec![sample_port_info()],
+            temperature: sample_temperature_metrics(),
+            gpu: sample_gpu_metrics(),
             timestamp: Utc::now(),
         }
     }
@@ -832,5 +917,99 @@ mod tests {
         let deser: BatchKillResponse = serde_json::from_str(&json).expect("deserialize");
         assert!(deser.results.is_empty());
         assert_eq!(deser.total_attempted, 0);
+    }
+
+    #[test]
+    fn test_temperature_metrics_serde_roundtrip() {
+        let temp = sample_temperature_metrics();
+        let json = serde_json::to_string(&temp).expect("serialize");
+        let deser: TemperatureMetrics = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.sensors.len(), 1);
+        assert_eq!(deser.sensors[0].label, "CPU");
+        assert_eq!(deser.sensors[0].temperature_celsius, Some(55.0));
+        assert_eq!(deser.sensors[0].critical_celsius, Some(105.0));
+    }
+
+    #[test]
+    fn test_temperature_sensor_nullable_fields() {
+        let sensor = TemperatureSensor {
+            label: "Unknown".to_string(),
+            temperature_celsius: None,
+            max_celsius: None,
+            critical_celsius: None,
+        };
+        let json = serde_json::to_string(&sensor).expect("serialize");
+        let deser: TemperatureSensor = serde_json::from_str(&json).expect("deserialize");
+        assert!(deser.temperature_celsius.is_none());
+        assert!(deser.max_celsius.is_none());
+        assert!(deser.critical_celsius.is_none());
+    }
+
+    #[test]
+    fn test_gpu_metrics_serde_roundtrip() {
+        let gpu = sample_gpu_metrics();
+        let json = serde_json::to_string(&gpu).expect("serialize");
+        let deser: GpuMetrics = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.gpus.len(), 1);
+        assert_eq!(deser.gpus[0].name, "Test GPU");
+        assert_eq!(deser.gpus[0].vram_total_bytes, Some(8_000_000_000));
+        assert_eq!(deser.gpus[0].utilization_percent, Some(45.0));
+    }
+
+    #[test]
+    fn test_gpu_info_no_metrics() {
+        let gpu = GpuInfo {
+            name: "Basic GPU".to_string(),
+            vendor: "Unknown".to_string(),
+            vram_total_bytes: None,
+            vram_used_bytes: None,
+            utilization_percent: None,
+            temperature_celsius: None,
+            power_watts: None,
+        };
+        let json = serde_json::to_string(&gpu).expect("serialize");
+        let deser: GpuInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.name, "Basic GPU");
+        assert!(deser.vram_total_bytes.is_none());
+    }
+
+    #[test]
+    fn test_gpu_metrics_empty() {
+        let gpu = GpuMetrics { gpus: vec![] };
+        let json = serde_json::to_string(&gpu).expect("serialize");
+        let deser: GpuMetrics = serde_json::from_str(&json).expect("deserialize");
+        assert!(deser.gpus.is_empty());
+    }
+
+    #[test]
+    fn test_history_query_default() {
+        let q = HistoryQuery::default();
+        assert!(q.range.is_none());
+        assert!(q.metric.is_none());
+    }
+
+    #[test]
+    fn test_history_response_serde_roundtrip() {
+        let resp = HistoryResponse {
+            points: vec![
+                HistoryPoint {
+                    timestamp: 1000,
+                    value: 45.5,
+                },
+                HistoryPoint {
+                    timestamp: 1002,
+                    value: 46.0,
+                },
+            ],
+            range_seconds: 3600,
+            metric: "cpu".to_string(),
+            point_count: 2,
+        };
+        let json = serde_json::to_string(&resp).expect("serialize");
+        let deser: HistoryResponse = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.points.len(), 2);
+        assert_eq!(deser.range_seconds, 3600);
+        assert_eq!(deser.metric, "cpu");
+        assert_eq!(deser.point_count, 2);
     }
 }
