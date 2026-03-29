@@ -12,6 +12,7 @@ pub struct SystemMetrics {
     pub system: SystemInfo,
     pub network: NetworkMetrics,
     pub disk: DiskMetrics,
+    pub ports: Vec<PortInfo>,
     pub timestamp: DateTime<Utc>,
 }
 
@@ -50,6 +51,18 @@ pub struct DiskInfo {
     pub used_bytes: u64,
     pub used_percent: f64,
     pub is_removable: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PortInfo {
+    pub port: u16,
+    pub protocol: String,
+    pub address: String,
+    pub pid: u32,
+    pub process_name: String,
+    pub user: String,
+    pub is_external: bool,
+    pub service: Option<String>,
 }
 
 /// CPU metrics
@@ -387,6 +400,19 @@ mod tests {
         }
     }
 
+    fn sample_port_info() -> PortInfo {
+        PortInfo {
+            port: 8989,
+            protocol: "tcp".to_string(),
+            address: "127.0.0.1".to_string(),
+            pid: 1234,
+            process_name: "sysmon".to_string(),
+            user: "testuser".to_string(),
+            is_external: false,
+            service: Some("sysmon".to_string()),
+        }
+    }
+
     fn sample_system_metrics() -> SystemMetrics {
         SystemMetrics {
             cpu: sample_cpu_metrics(),
@@ -397,6 +423,7 @@ mod tests {
             system: sample_system_info(),
             network: sample_network_metrics(),
             disk: sample_disk_metrics(),
+            ports: vec![sample_port_info()],
             timestamp: Utc::now(),
         }
     }
@@ -761,6 +788,36 @@ mod tests {
         assert_eq!(deser.total_succeeded, 1);
         assert_eq!(deser.total_failed, 1);
         assert_eq!(deser.results.len(), 2);
+    }
+
+    #[test]
+    fn test_port_info_serde_roundtrip() {
+        let port = sample_port_info();
+        let json = serde_json::to_string(&port).expect("serialize");
+        let deser: PortInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(deser.port, 8989);
+        assert_eq!(deser.protocol, "tcp");
+        assert_eq!(deser.process_name, "sysmon");
+        assert!(!deser.is_external);
+        assert_eq!(deser.service, Some("sysmon".to_string()));
+    }
+
+    #[test]
+    fn test_port_info_external() {
+        let port = PortInfo {
+            port: 80,
+            protocol: "tcp".to_string(),
+            address: "0.0.0.0".to_string(),
+            pid: 100,
+            process_name: "nginx".to_string(),
+            user: "root".to_string(),
+            is_external: true,
+            service: Some("HTTP".to_string()),
+        };
+        let json = serde_json::to_string(&port).expect("serialize");
+        let deser: PortInfo = serde_json::from_str(&json).expect("deserialize");
+        assert!(deser.is_external);
+        assert_eq!(deser.service, Some("HTTP".to_string()));
     }
 
     #[test]

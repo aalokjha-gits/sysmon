@@ -7,7 +7,19 @@ export interface SystemMetrics {
   system: SystemInfo;
   network: NetworkMetrics;
   disk: DiskMetrics;
+  ports: PortInfo[];
   timestamp: string;
+}
+
+export interface PortInfo {
+  port: number;
+  protocol: string;
+  address: string;
+  pid: number;
+  process_name: string;
+  user: string;
+  is_external: boolean;
+  service: string | null;
 }
 
 export interface NetworkMetrics {
@@ -156,6 +168,12 @@ export interface StaleResponse {
 export interface ContainersResponse {
   containers: Container[];
   runtime: string | null;
+}
+
+export interface PortsResponse {
+  ports: PortInfo[];
+  total: number;
+  external_count: number;
 }
 
 // Process management types

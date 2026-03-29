@@ -12,12 +12,14 @@ mod actions;
 mod containers;
 mod health;
 mod metrics;
+mod ports;
 mod processes;
 
 pub use actions::{batch_kill_handler, cleanup_handler, kill_handler, kill_stale_handler};
 pub use containers::containers_handler;
 pub use health::health_handler;
 pub use metrics::{cpu_metrics_handler, memory_metrics_handler, system_metrics_handler};
+pub use ports::ports_handler;
 pub use processes::{processes_handler, stale_processes_handler};
 
 /// Application state shared across handlers
@@ -39,6 +41,7 @@ pub fn create_api_router() -> Router<AppState> {
         .route("/metrics/memory", get(memory_metrics_handler))
         // Containers
         .route("/containers", get(containers_handler))
+        .route("/ports", get(ports_handler))
         // Processes
         .route("/processes", get(processes_handler))
         .route("/processes/stale", get(stale_processes_handler))

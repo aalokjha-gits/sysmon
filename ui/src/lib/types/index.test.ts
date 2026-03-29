@@ -89,6 +89,18 @@ function createMockMetrics(): SystemMetrics {
         }
       ]
     },
+    ports: [
+      {
+        port: 8989,
+        protocol: 'tcp',
+        address: '127.0.0.1',
+        pid: 1234,
+        process_name: 'sysmon',
+        user: 'testuser',
+        is_external: false,
+        service: 'sysmon'
+      }
+    ],
     timestamp: '2024-01-01T00:00:00Z'
   };
 }

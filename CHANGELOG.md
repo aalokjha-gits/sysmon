@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Sidebar navigation** — new workspace layout with 6 dedicated views (Overview, Processes, Network, Containers, Alerts, System), keyboard shortcuts 1-6, auto-expanding sidebar with labels on hover, mobile bottom nav
+- **Port monitoring** — detect all listening TCP/UDP ports via `lsof`, well-known service identification, external exposure warnings, `GET /api/v1/ports` endpoint, real-time port data in WebSocket metrics broadcast
+- **Overview dashboard** — grid of clickable metric cards for at-a-glance monitoring
+- **Dedicated views** — full-width process tree, combined network + ports view, alert center with severity sorting, system info panel
+
+### Changed
+
+- Dashboard layout replaced from fixed two-column split to sidebar + workspace architecture
+- Each monitoring domain gets its own full-width view instead of cramped panels
+
 ## [0.3.0] - 2026-03-29
 
 ### Added

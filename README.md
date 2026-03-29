@@ -28,14 +28,15 @@
 ## Features
 
 - **Single Binary** — Everything embedded, no external dependencies
-- **Beautiful UI** — Modern Svelte 5 dashboard with real-time updates
+- **Sidebar + Workspace UI** — Navigate between Overview, Processes, Network, Containers, Alerts, and System views with keyboard shortcuts (1-6)
 - **Lightweight** — Minimal resource footprint, written in Rust
-- **Real-time Metrics** — CPU, memory, disk, network, and process monitoring
-- **WebSocket Streaming** — Live data push to the browser
-- **Process Management** — Kill processes, detect stale/zombie processes, batch cleanup
+- **Real-time Metrics** — CPU, memory, disk, network, port, and process monitoring via WebSocket
+- **Process Tree** — Hierarchical parent-child process view with expand/collapse, search, filters (Active/Idle/Stale/Zombie), multi-select batch kill, signal picker, per-process CPU sparklines, and detail drawer
+- **Port Monitoring** — Detect all listening TCP/UDP ports with process ownership, service identification, and external exposure warnings
 - **Container Monitoring** — Docker and Podman container stats
 - **Alert System** — Configurable CPU/memory thresholds with consecutive sample tracking
-- **Responsive Design** — Works on desktop, tablet, and mobile
+- **Daemon Mode** — Run as a background service via macOS launchd with `sysmon service` commands
+- **Responsive Design** — Sidebar collapses to bottom nav on mobile
 - **Configurable** — TOML-based configuration with sensible defaults
 
 ## Quick Install
@@ -89,11 +90,31 @@ sysmon --no-browser
 sysmon --json
 ```
 
+### Daemon mode
+
+```bash
+sysmon service install    # Install launchd service
+sysmon service start      # Start the daemon
+sysmon service stop       # Stop the daemon
+sysmon service status     # Check daemon status
+sysmon service logs       # View daemon logs
+sysmon service uninstall  # Remove launchd service
+```
+
+The daemon runs on port 8989 with `--no-browser`. Access at `http://127.0.0.1:8989`.
+
+### Homebrew services
+
+```bash
+brew services start sysmon   # Start as background service
+brew services stop sysmon    # Stop service
+```
+
 ### All options
 
 ```
 USAGE:
-    sysmon [OPTIONS]
+    sysmon [OPTIONS] [COMMAND]
 
 OPTIONS:
     -p, --port <PORT>        Server port (0 for ephemeral) [env: SYSMON_PORT]
@@ -103,6 +124,9 @@ OPTIONS:
         --json               Output format as JSON
     -h, --help               Print help information
     -V, --version            Print version information
+
+COMMANDS:
+    service                  Manage sysmon as a system service (install, start, stop, etc.)
 ```
 
 ## Architecture
@@ -190,17 +214,19 @@ sysmon exposes a REST + WebSocket API:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/api/metrics/system` | Full system metrics |
-| `GET` | `/api/metrics/cpu` | CPU metrics only |
-| `GET` | `/api/metrics/memory` | Memory metrics only |
-| `GET` | `/api/containers` | Docker/Podman containers |
-| `GET` | `/api/processes` | Process list (supports `sort_by`, `limit`, `filter` query params) |
-| `GET` | `/api/processes/stale` | Stale processes |
-| `POST` | `/api/actions/kill` | Kill a process |
-| `POST` | `/api/actions/kill-stale` | Kill stale processes |
-| `POST` | `/api/actions/cleanup` | Batch cleanup (zombies + stale) |
-| `WS` | `/ws` | Real-time metrics stream |
+| `GET` | `/api/v1/health` | Health check |
+| `GET` | `/api/v1/metrics/system` | Full system metrics |
+| `GET` | `/api/v1/metrics/cpu` | CPU metrics only |
+| `GET` | `/api/v1/metrics/memory` | Memory metrics only |
+| `GET` | `/api/v1/containers` | Docker/Podman containers |
+| `GET` | `/api/v1/processes` | Process list (supports `sort_by`, `limit`, `filter`) |
+| `GET` | `/api/v1/processes/stale` | Stale processes |
+| `GET` | `/api/v1/ports` | Listening TCP/UDP ports |
+| `POST` | `/api/v1/actions/kill` | Kill a process |
+| `POST` | `/api/v1/actions/kill-batch` | Batch kill multiple processes |
+| `POST` | `/api/v1/actions/kill-stale` | Kill stale processes |
+| `POST` | `/api/v1/actions/cleanup` | Batch cleanup (zombies + stale) |
+| `WS` | `/api/v1/ws` | Real-time metrics stream |
 
 ## Development
 

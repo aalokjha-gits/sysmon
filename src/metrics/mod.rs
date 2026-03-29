@@ -14,12 +14,14 @@ mod cpu;
 pub mod disk;
 mod memory;
 pub mod network;
+pub mod ports;
 pub mod process;
 
 pub use cpu::collect_cpu_metrics;
 pub use disk::collect_disk_metrics;
 pub use memory::collect_memory_metrics;
 pub use network::collect_network_metrics;
+pub use ports::collect_listening_ports;
 pub use process::collect_processes;
 
 /// Metrics collector that owns the sysinfo System instance
@@ -81,9 +83,9 @@ impl MetricsCollector {
         // Drop the system lock before doing network/disk (which don't need it)
         drop(system);
 
-        // These don't need the system lock - they create their own instances
         let network = collect_network_metrics();
         let disk = collect_disk_metrics();
+        let ports = collect_listening_ports();
 
         *self.cached_all_processes.write().await = processes.clone();
 
@@ -121,6 +123,7 @@ impl MetricsCollector {
             system: system_info,
             network,
             disk,
+            ports,
             timestamp: Utc::now(),
         })
     }

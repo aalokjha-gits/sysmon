@@ -34,6 +34,7 @@ export const coreCount = derived(metrics, $m => $m?.cpu.cores.length ?? 0);
 export const systemInfo = derived(metrics, $m => $m?.system ?? null);
 export const networkMetrics = derived(metrics, $m => $m?.network ?? null);
 export const diskMetrics = derived(metrics, $m => $m?.disk ?? null);
+export const portMetrics = derived(metrics, $m => $m?.ports ?? []);
 
 // Critical/warning alerts count
 export const criticalAlertsCount = derived(alerts, $a =>
