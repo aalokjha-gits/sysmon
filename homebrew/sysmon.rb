@@ -21,17 +21,30 @@ class Sysmon < Formula
     end
   end
 
+  service do
+    run [opt_bin/"sysmon", "--no-browser", "--port", "8989"]
+    keep_alive true
+    log_path var/"log/sysmon.log"
+    error_log_path var/"log/sysmon.log"
+    working_dir var
+  end
+
   def caveats
     <<~EOS
-      To start sysmon:
+      To run interactively:
         sysmon
 
-      To start on a custom port:
-        sysmon --port 8080
+      To run as a background service:
+        brew services start sysmon
+        # or
+        sysmon service install
 
-      To start without opening browser:
-        sysmon --no-browser
+      To check status:
+        brew services info sysmon
+        # or
+        sysmon service status
 
+      Daemon port: 8989 (http://127.0.0.1:8989)
       Configuration: ~/.config/sysmon/config.toml
     EOS
   end
