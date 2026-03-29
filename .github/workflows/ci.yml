@@ -29,6 +29,9 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Create UI build placeholder
+        run: mkdir -p ui/build && touch ui/build/index.html
+
       - name: Check formatting
         run: cargo fmt -- --check
 
