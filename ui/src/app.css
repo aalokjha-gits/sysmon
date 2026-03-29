@@ -30,13 +30,12 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
 
-  /* Compact spacing for power user mode */
   --space-compact: 0.375rem;
-  --font-xs: 0.6875rem;
-  --font-sm: 0.75rem;
-  --font-base: 0.8125rem;
-  --font-lg: 0.875rem;
-  --font-xl: 1rem;
+  --font-xs: 0.8125rem;
+  --font-sm: 0.875rem;
+  --font-base: 0.9375rem;
+  --font-lg: 1rem;
+  --font-xl: 1.125rem;
   --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
 
   /* Border radius */
@@ -57,7 +56,7 @@
 }
 
 html {
-  font-size: 14px;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
